@@ -3,3 +3,6 @@
 # In any dir
 __pycache__/
 
+# We have the .gitkeep in this dir versioned, but after that we ignore all the
+# files in this dir since we can always regenerate it.
+doc/app-docs
