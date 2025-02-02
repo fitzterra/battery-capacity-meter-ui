@@ -76,6 +76,6 @@ docs:
 	if [[ $$remote_url == *.git ]]; then \
 	  remote_url=$${remote_url%.git}; \
 	fi && \
-	html_url="$$remote_url/blob/$$branch_name/Firmware/src" && \
+	html_url="$$remote_url/blob/$$branch_name/" && \
 	pydoctor --project-url "$$remote_url" --html-viewsource-base "$$html_url" --template-dir=./pydoctor_templates
 
