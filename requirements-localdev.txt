@@ -1,0 +1,11 @@
+# These are the requirements for local development.
+# The assumption is that you develop in a local python v3 virtual environment
+# and this is where your linter, doc tools, etc will run on the local source
+
+# But for linting etc. to work, we also install the production requirements
+-r requirements.txt
+
+pylint
+black
+pydoctor
+ipython

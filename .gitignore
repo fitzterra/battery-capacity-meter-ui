@@ -1,0 +1,5 @@
+# The full dir used by direnv
+.direnv/
+# In any dir
+__pycache__/
+

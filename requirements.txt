@@ -1,0 +1,5 @@
+# For fastapi
+fastapi[standard]==0.115.8
+
+# We'll use this ORM: https://ponyorm.org/
+pony==0.7.19
