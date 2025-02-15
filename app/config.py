@@ -12,3 +12,16 @@ APP_DOCS_DIR = Path().absolute() / "doc/app-docs"
 APP_DOCS_PATH = "app-docs"
 # Whether the app docs should be mounted or not
 MOUNT_APP_DOCS = True
+
+# Static files path
+STATIC_PATH = "static"
+
+# Our favicon
+FAVICON_PATH = "/static/icons8-charged-battery.gif"
+
+# Pick up the app version from the VERSION file in the top level dir
+try:
+    with open("VERSION", "r", encoding="utf-8") as f:
+        VERSION = f.readline().strip()
+except Exception:  # pylint: disable=broad-exception-caught
+    VERSION = "unknown"
