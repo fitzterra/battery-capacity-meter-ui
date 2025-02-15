@@ -1,69 +1,75 @@
 """
-Database Model Definitions
+Database model definitions
 """
 
-from datetime import datetime
-
-from typing import List
-from pydantic import constr, RootModel
-
-from sqlalchemy import (
-    Column,
-    DateTime,
-    Index,
-    PrimaryKeyConstraint,
-    SmallInteger,
-    REAL,
-    String,
-    Text,
-    text,
+from peewee import (
+    PostgresqlDatabase,
+    Model,
+    IntegerField,
+    CharField,
+    TextField,
+    SmallIntegerField,
+    DateTimeField,
+    FloatField,
+    AutoField,
+    SQL,
+)
+from .config import (
+    DB_HOST,
+    DB_USER,
+    DB_PASS,
+    DB_NAME,
 )
 
-from sqlmodel import (
-    Field,
-    SQLModel,
-)
+# All these classes will have too few public methods, so
+# @pylint: disable=too-few-public-methods
+
+# The DB condig
+database = PostgresqlDatabase(DB_NAME, host=DB_HOST, user=DB_USER, password=DB_PASS)
 
 
-class BatCap(SQLModel, table=True):
+class BaseModel(Model):
+    """
+    Base database model.
+
+    This model is the base for all other models, and specifies the database to
+    use. All other models can then subclass this base.
+    """
+
+    class Meta:
+        """
+        Model config
+        """
+
+        database = database
+
+
+class BatCap(BaseModel):
     """
     Battery Capacity Metrics.
     """
 
-    __tablename__ = "bat_cap"
-    __table_args__ = (
-        PrimaryKeyConstraint("id", name="bat_cap_pkey"),
-        Index("idx_bat_id", "bat_id"),
-        Index("idx_bc_name", "bc_name"),
-        Index("idx_created", "created"),
-        Index("idx_soc_uid", "soc_uid"),
-        Index("idx_state", "state"),
-    )
+    id = AutoField()
+    created = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
+    bc_name = TextField(index=True)
+    state = TextField(index=True)
+    bat_id = CharField(index=True, null=True, max_length=20)
+    bat_v = IntegerField(null=True)
+    adc_v = IntegerField(null=True)
+    current = IntegerField(null=True)
+    charge = IntegerField(null=True)
+    mah = IntegerField(null=True)
+    period = IntegerField(null=True)
+    shunt = FloatField(null=True)
+    soc_state = TextField(null=True)
+    soc_cycle = SmallIntegerField(null=True)
+    soc_cycles = SmallIntegerField(null=True)
+    soc_cycle_period = IntegerField(null=True)
+    soc_uid = TextField(index=True, null=True)
 
-    id: int | None = Field(default=None, primary_key=True)
-    created: datetime = Field(
-        sa_column=Column(
-            DateTime,
-            nullable=False,
-            server_default=text("CURRENT_TIMESTAMP"),
-        )
-    )
-    bc_name: str = Field(sa_column=Column(Text, nullable=False))
-    state: str = Field(sa_column=Column(Text, nullable=False))
-    bat_id: str | None = Field(default=None, sa_column=Column(String(20)))
-    bat_v: int | None = Field(default=None)
-    adc_v: int | None = Field(default=None)
-    current: int | None = Field(default=None)
-    charge: int | None = Field(default=None)
-    mah: int | None = Field(default=None)
-    period: int | None = Field(default=None)
-    shunt: float | None = Field(default=None, sa_column=Column(REAL))
-    soc_state: str | None = Field(default=None, sa_column=Column(Text))
-    soc_cycle: int | None = Field(default=None, sa_column=Column(SmallInteger))
-    soc_cycles: int | None = Field(default=None, sa_column=Column(SmallInteger))
-    soc_cycle_period: int | None = Field(default=None)
-    soc_uid: str | None = Field(default=None, sa_column=Column(Text))
+    class Meta:
+        """
+        Model config
+        """
 
-
-# A list of Battery IDs as returned by data.getAllBatIDs
-BatteryIDs = RootModel[List[constr(min_length=10, max_length=10)]]
+        table_name = "bat_cap"
