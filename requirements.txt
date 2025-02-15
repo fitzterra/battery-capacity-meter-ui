@@ -1,6 +1,17 @@
-# For fastapi
-fastapi[standard]==0.115.8
+### Production requirements ###
 
-# We'll use this ORM: https://sqlmodel.tiangolo.com/
-sqlmodel==0.0.22
-psycopg[binary,pool]==3.2.4
+#-- ORM --
+peewee==3.17.9
+# PostgreSQL driver for peewee
+# This requires libpq-dev to be installed
+#psycopg2==2.9.10
+# This does not require libpg-dev, but is not recommended for production
+psycopg2-binary==2.9.10
+
+#-- API/Web Server --
+microdot==2.1.0
+uvicorn==0.34.0
+
+# -- Environment --
+python-dotenv==1.0.1
+

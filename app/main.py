@@ -2,10 +2,9 @@
 Main application entry point.
 """
 
-from typing import Union
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from app.models import BatteryIDs
+import os
+from microdot.asgi import Microdot, send_file, redirect
+
 from app import data
 
 from .config import (
@@ -17,45 +16,86 @@ from .config import (
     STATIC_PATH,
 )
 
-app = FastAPI(
-    title="Battery Capacity Monitor",
-    description="View and query battery SoC information from a Battery Capacity Meter",
-    version=VERSION,
-    # The favicon is not settable in version 0.115.8 because there is no way to
-    # pass a favicon path through to the swagger html generator.
-    swagger_favicon_url=FAVICON_PATH,
-)
+
+app = Microdot()
 
 # Mount the APP API docs?
 if MOUNT_APP_DOCS:
-    app.mount(
-        f"/{APP_DOCS_PATH}",
-        StaticFiles(directory=APP_DOCS_DIR, html=True, follow_symlink=True),
-        name="app-docs",
-    )
 
-app.mount("/static", StaticFiles(directory=STATIC_PATH), name="static")
+    @app.get(f"/{APP_DOCS_PATH}/")
+    async def appDocsIndex(_):
+        """
+        App docs root - we just redirect to the ``index.html`` relative to theis
+        dir.
+        """
+        return redirect("index.html")
+
+    @app.get(f"/{APP_DOCS_PATH}/<path:path>")
+    async def appDocs(_, path):
+        """
+        Servers static app docs...
+
+        ToDo: Fix me....
+        """
+        if ".." in path:
+            # directory traversal is not allowed
+            return "Not found", 404
+        f_path = f"{APP_DOCS_DIR}/{path}"
+        if not os.path.exists(f_path) or os.path.isdir(f_path):
+            return "Not found", 404
+        return send_file(f"{APP_DOCS_DIR}/{path}", max_age=86400)
+
+
+# app.mount("/static", StaticFiles(directory=STATIC_PATH), name="static")
 
 
 @app.get("/")
-def readRoot():
+async def index(_):
     """
     Handler for the root path.
     """
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def readItem(item_id: int, q: Union[str, None] = None):
-    """
-    Handler for the get items path.
-    """
-    return {"item_id": item_id, "q": q}
+    return "Hello, world!"
 
 
 @app.get("/battery_ids")
-def batteryIDs() -> BatteryIDs:
+async def batteryIDs(_):
     """
     Returns a list of all knows Battery IDs.
     """
-    return data.getAllBatIDs()
+    return list(data.getAllBatIDs())
+
+
+@app.get("/soc_events/<string:bat_id>")
+async def socEvents(_, bat_id):
+    """
+    Returns a list of SoC Events for a given battery ID.
+    """
+    return list(data.getSoCEvents(bat_id))
+
+
+@app.get("/soc_measures/<string:uid>")
+async def socMeasures(_, uid):
+    """
+    Returns a list of all SoC Measure events for a given SoC UID
+    """
+    return list(data.getSoCMeasures(uid))
+
+
+@app.get("/soc_avg/<string:uid>")
+async def socqAvg(request, uid):
+    """
+    Returns the average SoC by UID....
+
+    ToDo: Fix the docs....
+    """
+
+    print(f"Args: {request.args}, {'single' in request.args}")
+    if "single" in request.args:
+        return {"mAh_avg": data.getSoCAvg(uid, single=True)}
+
+    return list(data.getSoCAvg(uid))
+
+
+# We will normally run under behind uvicorn, but if you need to run the local
+# Microdot webserver, uncomment this.
+# app.run(port=8000, debug=True)
