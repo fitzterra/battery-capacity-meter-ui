@@ -3,6 +3,16 @@ Main application entry point.
 """
 
 import os
+import logging
+
+# We set the logger up as early as possible. If there is an APP_LOGLEVEL
+# environment variable, we expect it to be "DEBUG", "INFO", etc. If this is a
+# valid log level we will set to that level, else fall back to INFO
+# pylint: disable=wrong-import-position
+LOGLEVEL = os.getenv("APP_LOGLEVEL") or "INFO"
+logging.basicConfig(level=getattr(logging, LOGLEVEL, logging.INFO))
+# pylint: enable=wrong-import-position
+
 from microdot.asgi import Microdot, send_file, redirect
 
 from app import data
@@ -16,6 +26,7 @@ from .config import (
     STATIC_PATH,
 )
 
+logger = logging.getLogger(__name__)
 
 app = Microdot()
 
@@ -95,6 +106,8 @@ async def socqAvg(request, uid):
 
     return list(data.getSoCAvg(uid))
 
+
+logging.debug("App starting...")
 
 # We will normally run under behind uvicorn, but if you need to run the local
 # Microdot webserver, uncomment this.

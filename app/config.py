@@ -11,17 +11,24 @@ and loaded via ``dotenv``. The config file will then set final values via the
 """
 
 import os
+import logging
 
 from typing import Any
 
 from pathlib import Path
 import dotenv
 
+logger = logging.getLogger(__name__)
+
+# This is only needed while developing. We read load the environment from the
+# .env file one level up from the app dir. While developing this file is
+# available directly, but in prod it will not be, and all environment files
+# will be passed in from the docker compose that will read the prod .env file.
 try:
     if not dotenv.load_dotenv():
-        print("No .env file found to load. Using default configs.")
+        logger.error("No .env file found to load. Using default env/configs.")
 except Exception as exc:
-    print(f"Error loading environment: {exc}")
+    logger.error("Error loading environment:  %s", exc)
 
 
 def envOrDefault(key: str, default: Any = None, conv: callable = None) -> Any:
@@ -53,6 +60,8 @@ def envOrDefault(key: str, default: Any = None, conv: callable = None) -> Any:
     # the default
     if val == None:
         return default
+
+    logger.debug("Config [%s] set from environment", key)
 
     # Need to convert?
     if callable(conv):
