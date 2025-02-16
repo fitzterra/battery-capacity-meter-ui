@@ -14,7 +14,7 @@ from peewee import (
     AutoField,
     SQL,
 )
-from .config import (
+from app.config import (
     DB_HOST,
     DB_USER,
     DB_PASS,

@@ -57,11 +57,12 @@ def getAllBatIDs() -> Iterator[str]:
 
 def getSoCEvents(battery_id: str) -> Iterator[tuple]:
     """
-    Generator that a list of all SoC events for a given battery ID.
+    Generator that returns a list of all SoC_ events for a given battery ID.
 
     The SQL query is:
 
-    ```sql
+    .. code::
+
         WITH consecutive_events AS (
         SELECT
             created,
@@ -89,9 +90,8 @@ def getSoCEvents(battery_id: str) -> Iterator[tuple]:
             bat_id, state, soc_uid, soc_state, grp
         ORDER BY
             event_time
-    ```
 
-    The result from this query may look like this:
+    The result from this query may look like this::
 
         +----------------------------+------------+-------------+----------+----------------+-------------+
         | event_time                 | bat_id     | state       | soc_uid  | soc_state      | event_count |
@@ -112,7 +112,7 @@ def getSoCEvents(battery_id: str) -> Iterator[tuple]:
 
 
     Yields:
-        A list of tuples. For the above results, it may look like this:
+        A list of tuples. For the above results, it may look like this::
 
             [(datetime.datetime(2025, 2, 4, 16, 12, 44, 966774), '2025020401', 'Battery+ID', None, None, 3),
              (datetime.datetime(2025, 2, 4, 16, 12, 48, 348954), '2025020401', 'Charging', 'e30cfb16', 'Initial Charge', 2318),
@@ -127,6 +127,7 @@ def getSoCEvents(battery_id: str) -> Iterator[tuple]:
              (datetime.datetime(2025, 2, 5, 11, 37, 5, 163452), '2025020401', 'Charged', 'e30cfb16', 'Completed', 1),
              (datetime.datetime(2025, 2, 5, 17, 12, 14, 572511), '2025020401', 'Yanked', None, None, 1)]
 
+    .. _SoC: https://en.wikipedia.org/wiki/State_of_charge
     """  # pylint: disable=line-too-long
     # Aliases for clarity
     created = BatCap.created
@@ -186,21 +187,21 @@ def getSoCEvents(battery_id: str) -> Iterator[tuple]:
 
 def getSoCMeasures(uid: str) -> Iterator[tuple]:
     """
-    Generator that returns the Charge and Discharge SoC measures for a specific
+    Generator that returns the Charge and Discharge SoC_ measures for a specific
     SoC UID.
 
     This is the SQL we execute:
 
-    ```sql
-    select created, bc_name, state, bat_id, bat_v, mah, period,
-           soc_state, CONCAT(soc_cycle, '/', soc_cycles) as cycle
-    from bat_cap
-    where soc_uid = '<uid>'
-       and state in ('Charged', 'Discharged') and soc_state is not NULL
-    order by id
-    ```
+    .. code::
 
-    which may have a result as :
+        select created, bc_name, state, bat_id, bat_v, mah, period,
+               soc_state, CONCAT(soc_cycle, '/', soc_cycles) as cycle
+        from bat_cap
+        where soc_uid = '<uid>'
+           and state in ('Charged', 'Discharged') and soc_state is not NULL
+        order by id
+
+    which may have a result as::
 
         +----------------------------+---------+------------+------------+-------+------+--------+-----------+-------+
         | created                    | bc_name | state      | bat_id     | bat_v | mah  | period | soc_state | cycle |
@@ -213,7 +214,7 @@ def getSoCMeasures(uid: str) -> Iterator[tuple]:
         +----------------------------+---------+------------+------------+-------+------+--------+-----------+-------+
 
     Returns:
-        A list of tuples. For the above it may be:
+        A list of tuples. For the above it may be::
 
             [
                 (
@@ -243,8 +244,7 @@ def getSoCMeasures(uid: str) -> Iterator[tuple]:
                 )
             ]
 
-
-
+    .. _SoC: https://en.wikipedia.org/wiki/State_of_charge
     """  # pylint: disable=line-too-long
 
     query = (
@@ -277,7 +277,7 @@ def getSoCMeasures(uid: str) -> Iterator[tuple]:
 
 def getSoCAvg(uid: str, single=False) -> list[tuple] | int:
     """
-    Returns the Charge and Discharge average mAh for the SoC measure with the
+    Returns the Charge and Discharge average mAh for the SoC_ measure with the
     given UID.
 
     The charge and discharge totals are not always the same since different
@@ -293,29 +293,29 @@ def getSoCAvg(uid: str, single=False) -> list[tuple] | int:
 
     This is the query:
 
-    ```sql
-    WITH soc_events AS (
-        SELECT bat_id, state, mah
-        FROM bat_cap
-        WHERE soc_uid = '<uid>'
-          AND state IN ('Charged', 'Discharged')
-        ORDER BY id
-        OFFSET 1   -- Remove the initial SoC charge row
-    )
-    SELECT
-        bat_id,
-        state,
-        ROUND(AVG(mah))::INTEGER AS avg_mah,  -- Convert to integer
-        COUNT(*) AS events  -- Count the number of rows making up the average
-    FROM
-        soc_events
-    GROUP BY
-        bat_id, state
-    ORDER BY
-        state
-    ```
+    .. code::
 
-    with a result that may be this:
+        WITH soc_events AS (
+            SELECT bat_id, state, mah
+            FROM bat_cap
+            WHERE soc_uid = '<uid>'
+              AND state IN ('Charged', 'Discharged')
+            ORDER BY id
+            OFFSET 1   -- Remove the initial SoC charge row
+        )
+        SELECT
+            bat_id,
+            state,
+            ROUND(AVG(mah))::INTEGER AS avg_mah,  -- Convert to integer
+            COUNT(*) AS events  -- Count the number of rows making up the average
+        FROM
+            soc_events
+        GROUP BY
+            bat_id, state
+        ORDER BY
+            state
+
+    with a result that may be this::
 
         +------------+------------+---------+--------+
         | bat_id     | state      | avg_mah | events |
@@ -325,7 +325,7 @@ def getSoCAvg(uid: str, single=False) -> list[tuple] | int:
         +------------+------------+---------+--------+
 
     Returns:
-        A list of tuples like this for the above data:
+        A list of tuples like this for the above data::
 
             [
                 ('2025020401', 'Charged', 2715, 2),
@@ -334,6 +334,8 @@ def getSoCAvg(uid: str, single=False) -> list[tuple] | int:
 
         If ``single`` is ``True``, the average of the 2 average ``mAh`` values
         will be returned as a single integer
+
+    .. _SoC: https://en.wikipedia.org/wiki/State_of_charge
     """
     # Aliases for clarity
     bat_id = BatCap.bat_id

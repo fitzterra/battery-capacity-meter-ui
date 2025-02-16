@@ -1,3 +1,7 @@
+
+# Make sure we use bash as the shell.
+SHELL := /usr/bin/env bash
+
 REGISTRY=darwin:5000
 IMAGE_NAME=bat-cap-ui
 DOCKERFILE=Dockerfile
