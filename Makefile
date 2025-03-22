@@ -7,7 +7,7 @@ IMAGE_NAME=bat-cap-ui
 DOCKERFILE=Dockerfile
 COMPOSE_FILE=docker-compose.yml
 
-.PHONY: image dev-setup run version bump-major bump-minor bump-patch
+.PHONY: image dev-setup run version bump-major bump-minor bump-patch docs db_shell compose-conf
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
@@ -27,7 +27,7 @@ define bump_version
 	awk -F. 'BEGIN {OFS="."} {$$$(1)+=1; print $$0}' VERSION > VERSION.tmp && mv VERSION.tmp VERSION
 endef
 
-#
+
 # Build and push Docker image with versioned tags
 image:
 	@docker build -t $(REGISTRY)/$(IMAGE_NAME):$(VERSION) -t $(REGISTRY)/$(IMAGE_NAME):latest . && \
@@ -83,3 +83,12 @@ docs:
 	html_url="$$remote_url/blob/$$branch_name/" && \
 	pydoctor --project-url "$$remote_url" --html-viewsource-base "$$html_url" --template-dir=./pydoctor_templates
 
+# Connects to the DB using pgcli
+# This relies on the DB_??? settings to be in the .env file
+db_shell:
+	@# Source .env and then connect with pgcli
+	@. .env && pgcli postgres://$${DB_USER}:$${DB_PASS}@$${DB_HOST}/$${DB_NAME}
+
+## Shows the compose config
+compose-conf:
+	@docker-compose config

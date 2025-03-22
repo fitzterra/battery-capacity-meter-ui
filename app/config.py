@@ -44,7 +44,7 @@ def envOrDefault(key: str, default: Any = None, conv: callable = None) -> Any:
     The callable should accept the string as only arg, and return the converted
     value.
 
-    If the callable raises and error, the `default` value passed in will be
+    If the callable raises and error, the ``default`` value passed in will be
     used as the final value.
 
     Args:
