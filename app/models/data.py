@@ -2,12 +2,12 @@
 Module for working with data from the database.
 """
 
-from datetime import datetime
+from datetime import datetime, date
 
 from typing import Iterator
 from peewee import fn, SQL
 
-from .models import BatCap
+from .models import db, BatCap
 
 
 def dateToStringTuple(tup: tuple) -> tuple:
@@ -27,9 +27,19 @@ def dateToStringTuple(tup: tuple) -> tuple:
         datetime type elements converted to date/time strings.
     """
 
-    return tuple(
-        f.strftime("%Y-%m-%d %H:%M:%S") if isinstance(f, datetime) else f for f in tup
-    )
+    def convIfDate(v):
+        """
+        Converts v to string representation of a datetime or date item, else it
+        just returs v.
+        """
+        if isinstance(v, datetime):
+            return v.strftime("%Y-%m-%d %H:%M:%S")
+        if isinstance(v, date):
+            return v.strftime("%Y-%m-%d")
+
+        return v
+
+    return tuple(convIfDate(f) for f in tup)
 
 
 def getAllBatIDs() -> Iterator[str]:
@@ -42,17 +52,23 @@ def getAllBatIDs() -> Iterator[str]:
     Yields:
         An ordered list of battery ID strings
     """
+    with db.connection_context():
+        query = (
+            BatCap.select(BatCap.bat_id, fn.DATE(BatCap.created).alias("date"))
+            .group_by(BatCap.bat_id, SQL("date"))
+            .order_by(BatCap.bat_id)
+        )
 
-    query = (
-        BatCap.select(BatCap.bat_id)
-        .distinct()
-        # This has to be '!=' @pylint: disable=singleton-comparison
-        .where(BatCap.bat_id != None)
-        .order_by(BatCap.bat_id)
-    )
+        # First yield the headers
+        yield (
+            "Battery ID",
+            "Date",
+        )
 
-    for bat_id in query.tuples():
-        yield bat_id[0]
+        # We need to convert the datetime objects to date time strings for each
+        # entry
+        for row in query.tuples():
+            yield dateToStringTuple(row)
 
 
 def getSoCEvents(battery_id: str) -> Iterator[tuple]:
@@ -129,60 +145,71 @@ def getSoCEvents(battery_id: str) -> Iterator[tuple]:
 
     .. _SoC: https://en.wikipedia.org/wiki/State_of_charge
     """  # pylint: disable=line-too-long
-    # Aliases for clarity
-    created = BatCap.created
-    bat_id = BatCap.bat_id
-    state = BatCap.state
-    soc_uid = BatCap.soc_uid
-    soc_state = BatCap.soc_state
+    with db.connection_context():
+        # Aliases for clarity
+        created = BatCap.created
+        bat_id = BatCap.bat_id
+        state = BatCap.state
+        soc_uid = BatCap.soc_uid
+        soc_state = BatCap.soc_state
 
-    # Define window functions
-    row_number_bat = fn.ROW_NUMBER().over(partition_by=[bat_id], order_by=[created])
+        # Define window functions
+        row_number_bat = fn.ROW_NUMBER().over(partition_by=[bat_id], order_by=[created])
 
-    row_number_bat_state = fn.ROW_NUMBER().over(
-        partition_by=[bat_id, state], order_by=[created]
-    )
-
-    # Define the CTE (Common Table Expression)
-    consecutive_events = (
-        BatCap.select(
-            created,
-            bat_id,
-            state,
-            soc_uid,
-            soc_state,
-            (row_number_bat - row_number_bat_state).alias("grp"),
+        row_number_bat_state = fn.ROW_NUMBER().over(
+            partition_by=[bat_id, state], order_by=[created]
         )
-        .where(bat_id == battery_id)
-        .cte("consecutive_events")  # Define the CTE name
-    )
 
-    # Main query using the CTE
-    query = (
-        BatCap.select(
-            fn.MIN(consecutive_events.c.created).alias("event_time"),
-            consecutive_events.c.bat_id,
-            consecutive_events.c.state,
-            consecutive_events.c.soc_uid,
-            consecutive_events.c.soc_state,
-            fn.COUNT("*").alias("event_count"),
+        # Define the CTE (Common Table Expression)
+        consecutive_events = (
+            BatCap.select(
+                created,
+                bat_id,
+                state,
+                soc_uid,
+                soc_state,
+                (row_number_bat - row_number_bat_state).alias("grp"),
+            )
+            .where(bat_id == battery_id)
+            .cte("consecutive_events")  # Define the CTE name
         )
-        .from_(consecutive_events)  # Reference the CTE
-        .group_by(
-            consecutive_events.c.bat_id,
-            consecutive_events.c.state,
-            consecutive_events.c.soc_uid,
-            consecutive_events.c.soc_state,
-            consecutive_events.c.grp,
-        )
-        .order_by(SQL("event_time"))
-        .with_cte(consecutive_events)  # Reference the CTE
-    )
 
-    # We need to convert the datetime objects to date time strings for each
-    # entry
-    for row in query.tuples():
-        yield dateToStringTuple(row)
+        # Main query using the CTE
+        query = (
+            BatCap.select(
+                fn.MIN(consecutive_events.c.created).alias("event_time"),
+                consecutive_events.c.bat_id,
+                consecutive_events.c.state,
+                consecutive_events.c.soc_uid,
+                consecutive_events.c.soc_state,
+                fn.COUNT("*").alias("event_count"),
+            )
+            .from_(consecutive_events)  # Reference the CTE
+            .group_by(
+                consecutive_events.c.bat_id,
+                consecutive_events.c.state,
+                consecutive_events.c.soc_uid,
+                consecutive_events.c.soc_state,
+                consecutive_events.c.grp,
+            )
+            .order_by(SQL("event_time"))
+            .with_cte(consecutive_events)  # Reference the CTE
+        )
+
+        # First yield the headers
+        yield (
+            "Time",
+            "Battery ID",
+            "State",
+            "SoC UID",
+            "SOC State",
+            "Events",
+        )
+
+        # We need to convert the datetime objects to date time strings for each
+        # entry
+        for row in query.tuples():
+            yield dateToStringTuple(row)
 
 
 def getSoCMeasures(uid: str) -> Iterator[tuple]:
@@ -247,32 +274,46 @@ def getSoCMeasures(uid: str) -> Iterator[tuple]:
     .. _SoC: https://en.wikipedia.org/wiki/State_of_charge
     """  # pylint: disable=line-too-long
 
-    query = (
-        BatCap.select(
-            BatCap.created,
-            BatCap.bc_name,
-            BatCap.state,
-            BatCap.bat_id,
-            BatCap.bat_v,
-            BatCap.mah,
-            BatCap.period,
-            BatCap.soc_state,
-            # This is in fact callable, @pylint: disable=not-callable
-            fn.CONCAT(BatCap.soc_cycle, "/", BatCap.soc_cycles).alias("cycle"),
+    with db.connection_context():
+        query = (
+            BatCap.select(
+                BatCap.created,
+                BatCap.bc_name,
+                BatCap.state,
+                BatCap.bat_id,
+                BatCap.bat_v,
+                BatCap.mah,
+                BatCap.period,
+                BatCap.soc_state,
+                # This is in fact callable, @pylint: disable=not-callable
+                fn.CONCAT(BatCap.soc_cycle, "/", BatCap.soc_cycles).alias("cycle"),
+            )
+            .where(
+                BatCap.soc_uid == uid,
+                BatCap.state.in_(["Charged", "Discharged"]),
+                # This has to be '!=' @pylint: disable=singleton-comparison
+                BatCap.state != None,
+            )
+            .order_by(BatCap.id)
         )
-        .where(
-            BatCap.soc_uid == uid,
-            BatCap.state.in_(["Charged", "Discharged"]),
-            # This has to be '!=' @pylint: disable=singleton-comparison
-            BatCap.state != None,
-        )
-        .order_by(BatCap.id)
-    )
 
-    # Return the results, but convert any datetime type elements in the result
-    # to date/time strings
-    for row in query.tuples():
-        yield dateToStringTuple(row)
+        # First yield the header
+        yield (
+            "Date/Time",
+            "BC",
+            "State",
+            "Battery ID",
+            "Battery V",
+            "mAh",
+            "Period",
+            "SoC State",
+            "Cycle",
+        )
+
+        # Return the results, but convert any datetime type elements in the result
+        # to date/time strings
+        for row in query.tuples():
+            yield dateToStringTuple(row)
 
 
 def getSoCAvg(uid: str, single=False) -> list[tuple] | int:
@@ -337,43 +378,44 @@ def getSoCAvg(uid: str, single=False) -> list[tuple] | int:
 
     .. _SoC: https://en.wikipedia.org/wiki/State_of_charge
     """
-    # Aliases for clarity
-    bat_id = BatCap.bat_id
-    soc_uid = BatCap.soc_uid
-    state = BatCap.state
-    mah = BatCap.mah
+    with db.connection_context():
+        # Aliases for clarity
+        bat_id = BatCap.bat_id
+        soc_uid = BatCap.soc_uid
+        state = BatCap.state
+        mah = BatCap.mah
 
-    # Define the "soc_events" CTE
-    soc_events_cte = (
-        BatCap.select(bat_id, state, mah)
-        .where((soc_uid == uid) & (state.in_(["Charged", "Discharged"])))
-        .order_by(BatCap.id)
-        .offset(1)  # Skip the first row which is the initial Charge event
-        .cte("soc_events")
-    )
-
-    # Main query using the CTE
-    query = (
-        BatCap.select(
-            soc_events_cte.c.bat_id,
-            soc_events_cte.c.state,
-            fn.ROUND(fn.AVG(soc_events_cte.c.mah)).cast("Integer").alias("avg_mah"),
-            # This is in fact callable, @pylint: disable=not-callable
-            fn.COUNT("*").alias("events"),
+        # Define the "soc_events" CTE
+        soc_events_cte = (
+            BatCap.select(bat_id, state, mah)
+            .where((soc_uid == uid) & (state.in_(["Charged", "Discharged"])))
+            .order_by(BatCap.id)
+            .offset(1)  # Skip the first row which is the initial Charge event
+            .cte("soc_events")
         )
-        .from_(soc_events_cte)  # Selecting from CTE and not BatCap
-        .group_by(soc_events_cte.c.bat_id, soc_events_cte.c.state)
-        .order_by(soc_events_cte.c.state)
-        .with_cte(soc_events_cte)
-    )
 
-    if single:
-        if query.count() != 2:
-            # If we do not have exactly 2 rows the value will be invalid, so we
-            # return None to show that.
-            return None
-        # The mAh is the 3rd element in each row. Sum them and divide by 2 to
-        # return the rounded average as an int.
-        return round(sum(e[2] for e in query.tuples()) / 2)
+        # Main query using the CTE
+        query = (
+            BatCap.select(
+                soc_events_cte.c.bat_id,
+                soc_events_cte.c.state,
+                fn.ROUND(fn.AVG(soc_events_cte.c.mah)).cast("Integer").alias("avg_mah"),
+                # This is in fact callable, @pylint: disable=not-callable
+                fn.COUNT("*").alias("events"),
+            )
+            .from_(soc_events_cte)  # Selecting from CTE and not BatCap
+            .group_by(soc_events_cte.c.bat_id, soc_events_cte.c.state)
+            .order_by(soc_events_cte.c.state)
+            .with_cte(soc_events_cte)
+        )
 
-    return list(query.tuples())
+        if single:
+            if query.count() != 2:
+                # If we do not have exactly 2 rows the value will be invalid, so we
+                # return None to show that.
+                return None
+            # The mAh is the 3rd element in each row. Sum them and divide by 2 to
+            # return the rounded average as an int.
+            return round(sum(e[2] for e in query.tuples()) / 2)
+
+        return list(query.tuples())

@@ -25,7 +25,9 @@ from app.config import (
 # @pylint: disable=too-few-public-methods
 
 # The DB condig
-database = PostgresqlDatabase(DB_NAME, host=DB_HOST, user=DB_USER, password=DB_PASS)
+db = PostgresqlDatabase(
+    DB_NAME, host=DB_HOST, user=DB_USER, password=DB_PASS, autoconnect=False
+)
 
 
 class BaseModel(Model):
@@ -41,7 +43,7 @@ class BaseModel(Model):
         Model config
         """
 
-        database = database
+        database = db
 
 
 class BatCap(BaseModel):

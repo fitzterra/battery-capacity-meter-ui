@@ -37,4 +37,4 @@ async def appDocs(_, path):
     f_path = f"{APP_DOCS_DIR}/{path}"
     if not os.path.exists(f_path) or os.path.isdir(f_path):
         return "Not found", 404
-    return send_file(f"{APP_DOCS_DIR}/{path}", max_age=86400)
+    return send_file(f_path, max_age=86400)
