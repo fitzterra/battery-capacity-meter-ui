@@ -84,7 +84,7 @@ APP_DOCS_PATH = "app-docs"
 MOUNT_APP_DOCS = True
 
 # Static files path
-STATIC_PATH = "static"
+STATIC_DIR = "static"
 
 # Our favicon
 FAVICON_PATH = "/static/icons8-charged-battery.gif"

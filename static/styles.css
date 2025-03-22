@@ -1,0 +1,63 @@
+
+/* Basic reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Header */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+	background-color: var(--primary);
+	padding: 0.2rem 0.5rem 0.5rem;
+    margin-top: 0.5rem;
+	border-radius: var(--border-radius);
+}
+
+.header .logo {
+    height: auto;
+    width: auto;
+}
+
+.header h1 {
+    flex: 1;
+    text-align: center;
+
+    padding: 0px;
+    margin: 0px;
+}
+
+/* Load spinner while waiting for the API call */
+.spinner {
+    text-align: center;
+}
+
+/* Main Content */
+.main-content {
+}
+
+/* Clickable table rows and columns*/
+.clickable {
+    cursor: pointer;
+}
+
+/* Show that the row or cells in the row may be clickable */
+table tr.clickable,
+table tr:has(td.clickable) {
+    border-left: dashed var(--table-border-color) 2px;
+}
+
+table .clickable:hover {
+    background-color: var(--secondary-hover);
+}
+
+table caption {
+	font-size: 150%;
+	font-weight: bolder;
+	border-radius: var(--border-radius);
+	background-color: var(--secondary);
+}

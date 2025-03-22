@@ -13,14 +13,14 @@ LOGLEVEL = os.getenv("APP_LOGLEVEL") or "INFO"
 logging.basicConfig(level=getattr(logging, LOGLEVEL, logging.INFO))
 # pylint: enable=wrong-import-position
 
-from microdot.asgi import Microdot, send_file, redirect
+from microdot.asgi import Microdot, redirect, send_file
 from app.api.soc import app as soc_app
 from app.api.docs import app as docs_app
 
 from .config import (
-    APP_DOCS_DIR,
     APP_DOCS_PATH,
     MOUNT_APP_DOCS,
+    STATIC_DIR,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,9 +41,25 @@ if MOUNT_APP_DOCS:
 @app.get("/")
 async def index(_):
     """
-    Handler for the root path.
+    App root - we just redirect to the ``index.html`` relative to this path.
     """
-    return "Hello, world!"
+    return redirect("index.html")
+
+
+@app.get("/<path:path>")
+async def static(_, path):
+    """
+    Servers static files...
+
+    ToDo: Fix me....
+    """
+    if ".." in path:
+        # directory traversal is not allowed
+        return "Not found", 404
+    f_path = f"{STATIC_DIR}/{path}"
+    if not os.path.exists(f_path) or os.path.isdir(f_path):
+        return "Not found", 404
+    return send_file(f_path, max_age=86400)
 
 
 logging.debug("App starting...")

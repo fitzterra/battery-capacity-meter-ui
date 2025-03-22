@@ -8,8 +8,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/code
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     command: uvicorn app.main:app --host ${APP_INTF} --port ${APP_PORT} ${UV_ARGS}
-
