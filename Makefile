@@ -7,7 +7,7 @@ IMAGE_NAME=bat-cap-ui
 DOCKERFILE=Dockerfile
 COMPOSE_FILE=docker-compose.yml
 
-.PHONY: image dev-setup run version bump-major bump-minor bump-patch docs db_shell compose-conf
+.PHONY: image dev-setup run version bump-major bump-minor bump-patch docs db_shell repl compose-conf
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
@@ -88,6 +88,14 @@ docs:
 db_shell:
 	@# Source .env and then connect with pgcli
 	@. .env && pgcli postgres://$${DB_USER}:$${DB_PASS}@$${DB_HOST}/$${DB_NAME}
+
+# Starts a local ipython REPL with the environment set up from .env
+# This will allow connecting to the DB and performing DB operations for example
+# - if the local dev host can connect to the DB
+repl:
+	@# Source .env and export all it's variables to the current shell and then
+	@# start ipython
+	@(set -a; . .env && ipython)
 
 ## Shows the compose config
 compose-conf:

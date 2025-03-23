@@ -5,14 +5,6 @@ Main application entry point.
 import os
 import logging
 
-# We set the logger up as early as possible. If there is an APP_LOGLEVEL
-# environment variable, we expect it to be "DEBUG", "INFO", etc. If this is a
-# valid log level we will set to that level, else fall back to INFO
-# pylint: disable=wrong-import-position
-LOGLEVEL = os.getenv("APP_LOGLEVEL") or "INFO"
-logging.basicConfig(level=getattr(logging, LOGLEVEL, logging.INFO))
-# pylint: enable=wrong-import-position
-
 from microdot.asgi import Microdot, redirect, send_file
 from app.api.soc import app as soc_app
 from app.api.docs import app as docs_app

@@ -13,6 +13,7 @@ Attributes:
 .. _peewee: http://docs.peewee-orm.com/en/latest/index.html
 """
 
+import logging
 from datetime import datetime
 
 from peewee import (
@@ -24,10 +25,13 @@ from peewee import (
     TextField,
     SmallIntegerField,
     DateTimeField,
+    DateField,
     FloatField,
     AutoField,
-    SQL,
+    DatabaseError,
 )
+from playhouse.postgres_ext import PostgresqlExtDatabase, JSONField
+
 from app.config import (
     DB_HOST,
     DB_USER,
@@ -35,11 +39,14 @@ from app.config import (
     DB_NAME,
 )
 
+# Set up a local logger
+logger = logging.getLogger(__name__)
+
 # All these classes will have too few public methods, so
 # @pylint: disable=too-few-public-methods
 
-# The DB condig
-db = PostgresqlDatabase(
+# The DB config
+db = PostgresqlExtDatabase(
     DB_NAME, host=DB_HOST, user=DB_USER, password=DB_PASS, autoconnect=False
 )
 
@@ -73,7 +80,7 @@ class Battery(BaseModel):
     * The last measured capacity in mAh
     * The last measurement date
 
-    Linked to each entry are history entries via the `BatSoCHistory` table
+    Linked to each entry are history entries via the `BatCapHistory` table
     which will give details for historical SoC measurements, including the last
     one that produced the current mAh capacity measurement.
 
@@ -88,10 +95,11 @@ class Battery(BaseModel):
     """
 
     id = AutoField()
-    created = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
-    modified = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
+    created = DateTimeField(default=datetime.now, index=True)
+    modified = DateTimeField(default=datetime.now, index=True)
     bat_id = CharField(unique=True, index=True, null=False, max_length=20)
-    mah = IntegerField(null=True)
+    cap_date = DateField(null=False)
+    mah = IntegerField(null=False)
 
     class Meta:
         """
@@ -116,7 +124,7 @@ class Battery(BaseModel):
         return super().save(*args, **kwargs)
 
 
-class BatSoCHistory(BaseModel):
+class BatCapHistory(BaseModel):
     """
     State of Charge (SoC) history entry.
 
@@ -172,20 +180,42 @@ class BatSoCHistory(BaseModel):
 
             This is the same as `SoCEvent.soc_uid` for the group of `SoCEvent`
             entries this history entry represents.
-        mah: The final capacity in mAh calculated
+        mah: The final capacity in mAh.
 
-            This calculated from the final charge and discharge events in the
-            group of `SoCEvent` records for this SoC measurement.
+            This is calculated from the final charge and discharge events in
+            the group of `SoCEvent` records for this SoC measurement.
         accuracy: Accuracy of the `mah` value. See description above
+        per_dch: Details specific to the charge and discharge events used to do
+            the capacity measurements as a JSON structure.
+
+            .. python::
+
+                {      # Values specific to the dis/charge cycles
+                    'ch': {       # Charge specific values
+                        'mah_avg': int,   # Avg mAh for all charge cycles
+                        'period': int,    # Avg period in secs for charge cycles
+                        'shunt': float    # Shunt resistor in charge circuit
+                    },
+                    'dch': {
+                        'mah_avg': int,   # Avg mAh for all discharge cycles
+                        'period': int,    # Avg period in secs for discharge cycles
+                        'shunt': float    # Shunt resistor in discharge circuit
+                    }
+                }
 
     """
 
     id = AutoField()
-    created = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
-    battery = ForeignKeyField(Battery, backref="soc_history", on_delete="CASCADE")
-    soc_uid = TextField(unique=True)
-    mah = IntegerField()
-    accuracy = IntegerField()
+    created = DateTimeField(default=datetime.now, null=False, index=True)
+    battery = ForeignKeyField(
+        Battery, null=False, backref="cap_history", on_delete="CASCADE"
+    )
+    soc_uid = TextField(null=False, unique=True)
+    mah = IntegerField(null=False)
+    accuracy = IntegerField(null=False)
+    num_events = IntegerField(null=False)
+    # Will be something like {'ch': 145323, 'dch': 156345}
+    per_dch = JSONField()
 
     class Meta:
         """
@@ -195,7 +225,7 @@ class BatSoCHistory(BaseModel):
             table_name: Name of the table in the database.
         """
 
-        table_name = "bat_soc_history"
+        table_name = "bat_cap_history"
 
 
 class SoCEvent(BaseModel):
@@ -245,7 +275,7 @@ class SoCEvent(BaseModel):
         shunt: The shunt resistor value for dis/charge events.
 
             This can help understand the `mah` or `current` differences between
-            charge and discharge cycles. See also `BatSoCHistory.accuracy`
+            charge and discharge cycles. See also `BatCapHistory.accuracy`
 
         soc_state: The SoC measurement cycle state.
 
@@ -261,11 +291,11 @@ class SoCEvent(BaseModel):
             Measurement.
         soc_cycle_period: The period for the SoC measurement thus far in milliseconds.
         soc_uid: The UID used for all cycles in this SoC Measurement.
-        bat_history: FK to link this event to a specific `BatSoCHistory` event.
+        bat_history: FK to link this event to a specific `BatCapHistory` event.
     """
 
     id = AutoField()
-    created = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
+    created = DateTimeField(default=datetime.now, index=True)
     bc_name = TextField(index=True)
     state = TextField(index=True)
     bat_id = CharField(index=True, null=True, max_length=20)
@@ -282,7 +312,7 @@ class SoCEvent(BaseModel):
     soc_cycle_period = IntegerField(null=True)
     soc_uid = TextField(index=True, null=True)
     bat_history = ForeignKeyField(
-        BatSoCHistory, backref="soc_events", null=True, on_delete="SET NULL"
+        BatCapHistory, backref="soc_events", null=True, on_delete="SET NULL"
     )
 
     class Meta:
