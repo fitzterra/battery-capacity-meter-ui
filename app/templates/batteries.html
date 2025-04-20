@@ -17,7 +17,7 @@
       <td><a href="{{ b['bat_id'] }}/">{{ b['bat_id'] }}</a></td>
       <td>{{ b['cap_date'] }}</td>
       <td data-sort="{{ b['mah'] }}"><strong>{{ b['mah'] }}mAh</strong></td>
-      <td>{{ b['accuracy'] }}</td>
+      <td data-sort="{{ b['accuracy'] }}">{{ b['accuracy'] }}%</td>
     </tr>
     {% endfor %}
   </tbody>
