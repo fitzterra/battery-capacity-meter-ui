@@ -467,7 +467,9 @@ class BatCapHistory(BaseModel):
 
             return res
 
-    def plotData(self, plot_ind: str, max_points: int | None = 200) -> list[dict]:
+    def plotData(
+        self, plot_ind: str, max_points: int | None = 200
+    ) -> tuple[str, int, list[dict]]:
         """
         Returns the data points for plotting the cycle graphs for this history
         entry and the given plot indicator.
@@ -523,7 +525,15 @@ class BatCapHistory(BaseModel):
                 than this value indicates.
 
         Returns:
-            A list of dictionaries as described above.
+            A 3-tuple as:
+
+            .. python::
+
+                (
+                    cycle,     # "Charging" or "Discharging"
+                    cycle_num, # The cycle number for this cycle
+                    plot_data  # The list of plot dicts described above
+                )
         """
         # Convert the first character in plot_ind to the Charging or
         # Discharging status string by looking it up in the table below
@@ -569,7 +579,7 @@ class BatCapHistory(BaseModel):
             else:
                 plot_data = list(query.dicts())
 
-        return plot_data
+        return (st, cn, plot_data)
 
 
 class SoCEvent(BaseModel):

@@ -636,6 +636,8 @@ def getBatMeasurementPlotData(bat_id: str, uid: str, plot_ind: str) -> list[dict
     res = {
         "success": False,
         "msg": "",
+        "cycle": "",
+        "cycle_num": 0,
         "plot_data": None,
     }
 
@@ -655,7 +657,7 @@ def getBatMeasurementPlotData(bat_id: str, uid: str, plot_ind: str) -> list[dict
             return res
 
         # ... and the plot data
-        plot_data = uid_hist.plotData(plot_ind)
+        cycle, cycle_num, plot_data = uid_hist.plotData(plot_ind)
         if not plot_data:
             res["msg"] = (
                 f"No plot data found for UID {uid} for battery with ID {bat_id}."
@@ -665,5 +667,7 @@ def getBatMeasurementPlotData(bat_id: str, uid: str, plot_ind: str) -> list[dict
         # Build the result
         res["success"] = True
         res["plot_data"] = plot_data
+        res["cycle"] = cycle
+        res["cycle_num"] = cycle_num
 
         return res

@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Parse it
             const data = JSON.parse(json);
 
+            // Make up a title from the cyucle and cycle number
+            const title = `${data.cycle} cycle ${data.cycle_num}`
+
             // Clear the canvas content
             canvas.innerHTML = '';
 
@@ -36,10 +39,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 x: parseInt(entry.timestamp),
                 y: entry.mah
             }));
-            
-            console.log("Voltage data:", voltageData);
-            console.log("Capacity data:", capacityData);
 
+            const currentData = data.plot_data.map(entry => ({
+                x: parseInt(entry.timestamp),
+                y: entry.current 
+            }));
+            
             const ctx = canvas.getContext('2d');
 
             // Destroy the previous chart if it exists
@@ -61,10 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         },
                         {
                             label: 'Current (mA)',
-                            data: data.plot_data.map(entry => ({
-                                x: parseInt(entry.timestamp),
-                                y: entry.current
-                            })),
+                            data: currentData,
                             yAxisID: 'y1',
                             borderColor: 'rgb(255, 206, 86)', // yellow-ish
                             tension: 0.2,
@@ -146,6 +148,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                     }
                                     return label;
                                 }
+                            }
+                        },
+                        title: {
+                            text: title,
+                            display: true,
+                            color: '#eeee',
+                            font: {
+                                size: 14,
                             }
                         },
                         zoom: {

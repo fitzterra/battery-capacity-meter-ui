@@ -260,6 +260,10 @@ canvas.battery-plot {
     aspect-ratio: 16 / 9;
     height: auto;
     display: block;
+	background: var(--pico-color-slate-900);
+	border-radius: var(--border-radius);
+	margin: 2rem 0;
+}
 
 span.version {
 	font-size: small;
