@@ -8,3 +8,6 @@ __pycache__/
 doc/app-docs
 .env_local
 .env
+
+# uTemplate compiled templates
+app/templates/*.py

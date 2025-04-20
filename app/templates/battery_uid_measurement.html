@@ -1,0 +1,57 @@
+{% args details, cycles, err %}
+{% if err %}
+<h2>Error</h2>
+<p>{{ err }}</p>
+{% else %}
+<h3>Battery Capacity Measurement</h3>
+
+<ul class="bat-cap">
+  <li><strong>Battery ID</strong>: {{ details['bat_id'] }}</li>
+  <li><strong>Measure UID</strong>: {{ details['uid'] }}</li>
+  <li><strong>Measure Date</strong>: {{ details['cap_date'] }}</li>
+  <li><strong>Capacity</strong>: {{ details['mah'] }}mAh</li>
+  <li><strong>Accuracy</strong>: {{ details['accuracy'] }}%</li>
+  <li><strong>Controller</strong>: {{ details['bc_name'] }}</li>
+</ul>
+
+<table data-name="battery_uid_measure">
+  <caption>
+    Measurement Summary
+  </caption>
+  <thead>
+    <tr>
+      <th>State</th>
+      <th>End Voltage</th>
+      <th><strong>Capacity</strong></th>
+      <th>Period</th>
+      <th>Cycle</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in cycles %}
+    <tr>
+      <td>{{ c['state'] }}</td>
+      <td>{{ c['bat_v'] }}mV</td>
+      <td><strong>{{ c['mah'] }}mAh</strong></td>
+      <td>{{ c['period'] }}s</td>
+      <td>{{ c['cycle'] }}</td>
+      <td>
+        <a
+          hx-get="plot/{{ c['plot_ind'] }}"
+          hx-target=".plotter canvas"
+          hx-swap="innerHTML"
+          hx-on:htmx:after-on-load="document.querySelector('.plotter').hidden = false"
+        >plot</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="plotter" hidden>
+  <canvas class="battery-plot" height="200"></canvas>
+  <button hx-on:click="this.closest('.plotter').hidden = true" >Close</button>
+</div>
+{% endif %}
+

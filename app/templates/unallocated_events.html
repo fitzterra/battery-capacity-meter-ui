@@ -1,0 +1,51 @@
+{% args events %}
+<table data-name="battery_ids">
+  <caption>
+    All unallocated Battery events
+  </caption>
+  <thead>
+    <tr>
+      <th>Battery ID</th>
+      <th>Date</th>
+      <th>Events</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% set showDel = False %}
+    {% for e in events %}
+      <tr>
+        <td>
+        {% if e['bat_id'] %}
+          <a href="bat_id/{{ e['bat_id'] }}/">{{ e['bat_id'] }}</a>
+        {% else %}
+          {% set showDel = True %}
+        {% endif %}
+        </td>
+        <td>{{ e['date'] }}</td>
+        <td>{{ e['events'] }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+  {% if showDel %}
+  <tfoot>
+    <tr>
+      <td colspan="3">
+        <div class="grid" style="margin: 1rem;">
+          <button
+            class="bad-action outline contrast"
+            data-confirm-title="Confirm Events Deletion"
+            hx-confirm="All events without a Battery ID will be deleted.
+                        <br>Are you sure you want to continue?"
+            data-confirm-ok="Delete"
+            hx-get="del_dangling_events"
+            hx-target="closest div"
+            hx-swap="innerHTML"
+          >Delete Dangling Events</button>
+        </div>
+        <hr />
+      </td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+
