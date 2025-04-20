@@ -332,6 +332,7 @@ def setCapacityFromSocUID(soc_uid: str, bat_id: str) -> dict:
             bat_cap_hist = BatCapHistory.create(
                 battery=bat,
                 soc_uid=soc_uid,
+                cap_date=bat.cap_date,
                 mah=v_res["mah_avg"],
                 accuracy=v_res["accuracy"],
                 num_events=v_res["num_events"],
