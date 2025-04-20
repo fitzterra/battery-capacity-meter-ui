@@ -1,0 +1,97 @@
+{% args sum, bat_id, uid %}
+
+{% if not sum['success'] %}
+<div class="error">
+  <h2>Error</h2>
+  <p>{{ sum['msg'] }}</p>
+</div>
+{% else %}
+<h2>Capacity Measurement Cycle</h2>
+<table data-name="summary">
+  <caption>Summary</caption>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Battery ID</th>
+      <th>SoC UID</th>
+      <th>Cycles</th>
+      <th><strong>Average</strong></th>
+      <th>Accuracy</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>{{ sum['date'].date() }}</td>
+      <td>{{ bat_id }}</td>
+      <td>{{ uid }}</td>
+      <td>{{ sum['cycles'] }}</td>
+      <td><strong>{{ sum['mah_avg'] }}mAh</strong></td>
+      <td>{{ sum['accuracy'] }}%</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="6">
+        <div class="grid" style="margin: 1rem;">
+          <button
+            class="good-action"
+            data-confirm-title="Set Battery Measurement History"
+            hx-confirm="These events will be used to add a meassurment event
+                        for this battery using the displayed capacity<br>
+                        Please confirm to continue."
+            data-confirm-ok="Confirm"
+            hx-get="set_history"
+            hx-target="closest div"
+            hx-swap="innerHTML"
+          >Record as History</button>
+          <button
+            class="bad-action outline contrast"
+            data-confirm-title="Delete Measuement UID"
+            hx-confirm="All events for this UID will be deleted. 
+                       <strong>This action can not be reversed</strong>.<br>
+                       Are you sure you want to delete these events?"
+            data-confirm-ok="Delete"
+            hx-get="del_history"
+            hx-target="closest div"
+            hx-swap="innerHTML"
+          >Delete this UID</button>
+        </div>
+        <hr />
+      </td>
+    </tr>
+  </tfoot>
+</table>
+
+
+<hr />
+
+<table data-name="measure_events">
+  <caption>End of state events</caption>
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>BC</th>
+            <th>State</th>
+            <th>Bat V</th>
+            <th>mAh</th>
+            <th>Period</th>
+            <th>SOC State</th>
+            <th>Cycle</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for e in sum['end_evts'] %}
+      <tr>
+        <td>{{ e['created'].strftime("%Y-%m-%d") }}</td>
+        <td>{{ e['bc_name'] }}</td>
+        <td>{{ e['state'] }}</td>
+        <td>{{ e['bat_v'] }}</td>
+        <td>{{ e['mah'] }}</td>
+        <td>{{ e['period'] }}</td>
+        <td>{{ e['soc_state'] }}</td>
+        <td>{{ f"{e['soc_cycle']}/{e['soc_cycles']}" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}

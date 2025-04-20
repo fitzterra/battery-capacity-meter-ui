@@ -1,0 +1,28 @@
+{% args bats %}
+<table data-name="batteries">
+  <caption>
+    Batteries
+  </caption>
+  <thead>
+    <tr>
+      <th>Battery ID</th>
+      <th>Created</th>
+      <th>Modified</th>
+      <th>Measure Date</th>
+      <th><strong>Capacity</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for b in bats %}
+    <tr>
+      <td><a href="{{ b['bat_id'] }}/">{{ b['bat_id'] }}</a></td>
+      <td>{{ b['created'] }}</td>
+      <td>{{ b['modified'] }}</td>
+      <td>{{ b['cap_date'] }}</td>
+      <td><strong>{{ b['mah'] }}mAh</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+

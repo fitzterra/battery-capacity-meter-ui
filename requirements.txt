@@ -10,6 +10,9 @@ psycopg2-binary==2.9.10
 
 #-- API/Web Server --
 microdot==2.1.0
+# This can currently no be installed from PyPi. See:
+# https://github.com/pfalcon/utemplate/issues/16#issuecomment-776708917
+git+https://github.com/pfalcon/utemplate.git#egg=utemplate
 uvicorn==0.34.0
 
 # -- Environment --

@@ -1,0 +1,39 @@
+{% args bat, hist, err %}
+{% if err %}
+<h2>Error</h2>
+<p>{{ err }}</p>
+{% else %}
+<h3>Battery Capacity Measurement History</h3>
+
+<ul class="bat-cap">
+  <li><strong>Battery ID</strong>: {{ bat['bat_id'] }}</li>
+  <li><strong>Capacity</strong>: {{ bat['mah'] }}mAh</li>
+  <li><strong>Measure Date</strong>: {{ bat['cap_date'] }}</li>
+</ul>
+
+<table data-name="battery_history">
+  <caption>
+    Measurement History
+  </caption>
+  <thead>
+    <tr>
+      <th>Measure Date</th>
+      <th>Measure UID</th>
+      <th><strong>Capacity</strong></th>
+      <th>Accuracy</th>
+      <th>Events</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for h in hist %}
+    <tr>
+      <td>{{ h['cap_date'] }}</td>
+      <td><a href="{{ h['soc_uid'] }}/">{{ h['soc_uid'] }}</a></td>
+      <td><strong>{{ h['mah'] }}mAh</strong></td>
+      <td>{{ h['accuracy'] }}%</td>
+      <td>{{ h['num_events'] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

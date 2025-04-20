@@ -3,26 +3,30 @@ Battery Capacity ERD
 
 ```mermaid
 ---
-title: Battery Capacity
+title: Battery Capacity Meter UI ERD
 ---
 
 erDiagram
-    direction TB
+    direction LR
     battery {
         id integer PK
         created timestamp
         modified timestamp
         bat_id varchar(20) UK
+        cap_date date
         mah integer
     }
 
-    bat_soc_history {
+    bat_cap_history {
         id integer PK
         created timestamp
         battery_id integer FK
         soc_uid text UK
+        cap_date timestamp
         mah integer
-        dch_accuracy integer
+        accuracy integer
+        num_events integer
+        per_dch json
     }
 
     soc_event {
@@ -43,9 +47,9 @@ erDiagram
         soc_cycles smallint
         soc_cycle_period integer
         soc_uid text
-        soc_history_id integer FK
+        bat_history_id integer FK
     }
 
-    bat_soc_history ||--|{ soc_event: "has"
-    battery ||--|{ bat_soc_history: "has"
+    bat_cap_history ||--|{ soc_event: "has"
+    battery ||--|{ bat_cap_history: "has"
 ```
