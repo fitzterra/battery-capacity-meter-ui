@@ -27,6 +27,7 @@ from .config import (
     APP_DOCS_PATH,
     MOUNT_APP_DOCS,
     STATIC_DIR,
+    VERSION,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ async def index(_):
 
     We simply render the index.html template
     """
-    return Template("index.html").render(content="")
+    return Template("index.html").render(content="", version=VERSION)
 
 
 @app.get("/events/")
@@ -69,7 +70,7 @@ async def events(req):
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
-    return Template("index.html").render(content=content)
+    return Template("index.html").render(content=content, version=VERSION)
 
 
 @app.get("/events/del_dangling_events")
@@ -116,7 +117,7 @@ async def batEvents(req, bat_id):
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
-    return Template("index.html").render(content=content)
+    return Template("index.html").render(content=content, version=VERSION)
 
 
 @app.get("events/bat_id/<bat_id>/del_events")
@@ -161,7 +162,7 @@ async def uidEvents(req, bat_id, uid):
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
-    return Template("index.html").render(content=content)
+    return Template("index.html").render(content=content, version=VERSION)
 
 
 @app.get("events/measure/<bat_id>/<uid>/set_history")
@@ -238,7 +239,7 @@ async def batteries(req):
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
-    return Template("index.html").render(content=content)
+    return Template("index.html").render(content=content, version=VERSION)
 
 
 @app.get("/bat/<bat_id>/")
@@ -264,7 +265,7 @@ async def batHistory(req, bat_id):
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
-    return Template("index.html").render(content=content)
+    return Template("index.html").render(content=content, version=VERSION)
 
 
 @app.get("/bat/<bat_id>/<uid>/")
@@ -291,11 +292,11 @@ async def batMeasureUID(req, bat_id, uid):
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
-    return Template("index.html").render(content=content)
+    return Template("index.html").render(content=content, version=VERSION)
 
 
 @app.get("/bat/<bat_id>/<uid>/plot/<plot_ind>")
-async def batMeasureUIDPlot(req, bat_id, uid, plot_ind):
+async def batMeasureUIDPlot(_, bat_id, uid, plot_ind):
     """
     Generates ....
     """

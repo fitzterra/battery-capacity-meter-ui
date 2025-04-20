@@ -260,4 +260,19 @@ canvas.battery-plot {
     aspect-ratio: 16 / 9;
     height: auto;
     display: block;
+
+span.version {
+	font-size: small;
+	font-weight: bold;
+	display: inline-block;
+	border: 1px solid var(--secondary-inverse);
+	border-radius: var(--border-radius);
+	padding: 0.1rem 0.3rem;
+	background: var(--secondary);
+	color: var(--primary-hover);
+}
+
+table td,
+table th {
+    text-align: right;
 }
