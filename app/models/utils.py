@@ -316,16 +316,21 @@ def setCapacityFromSocUID(soc_uid: str, bat_id: str) -> dict:
             # calculated values if it does not exist
             bat, created = Battery.get_or_create(
                 bat_id=bat_id,
-                defaults={"mah": v_res["mah_avg"], "cap_date": v_res["date"]},
+                defaults={
+                    "mah": v_res["mah_avg"],
+                    "cap_date": v_res["date"],
+                    "accuracy": v_res["accuracy"],
+                },
             )
             if not created and v_res["date"].date() > bat.cap_date:
                 # This battery exists, and the new capture date is greater than
                 # the last capture date, so let's update to the new values
-                # NOTE: v_res["date"] id a dateime object, so we need to
+                # NOTE: v_res["date"] id a datetime object, so we need to
                 #   convert it to a date object in order to do the comparison
                 #   with cap_date which is a date type object.
                 bat.mah = v_res["mah_avg"]
                 bat.cap_date = v_res["date"]
+                bat.accuracy = v_res["accuracy"]
                 bat.save()
 
             # Now we can create a new history entry

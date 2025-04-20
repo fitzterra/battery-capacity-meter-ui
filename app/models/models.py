@@ -109,6 +109,9 @@ class Battery(BaseModel):
             This is also the same as `SoCEvent.bat_id`
         cap_date: The date the measure was made on. This is the
             `BatCapHistory.cap_date` value for the most recent history entry.
+        accuracy: Accuracy of the `mah` value. This is the
+            `BatCapHistory.accuracy` value. See `BatCapHistory` for more
+            details.
         mah: The last measure capacity in mAh. This is the
              `BatCapHistory.mah` value for the most recent history entry.
     """
@@ -119,6 +122,7 @@ class Battery(BaseModel):
     bat_id = CharField(unique=True, index=True, null=False, max_length=20)
     cap_date = DateField(null=False)
     mah = IntegerField(null=False)
+    accuracy = IntegerField(null=False)
 
     class Meta:
         """

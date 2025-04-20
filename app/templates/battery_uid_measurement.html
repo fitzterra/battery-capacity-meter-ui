@@ -6,7 +6,7 @@
 <h3>Battery Capacity Measurement</h3>
 
 <ul class="bat-cap">
-  <li><strong>Battery ID</strong>: {{ details['bat_id'] }}</li>
+  <li><strong>Battery ID</strong>: <a href='/bat/{{ details['bat_id'] }}/'>{{ details['bat_id'] }}</a></li>
   <li><strong>Measure UID</strong>: {{ details['uid'] }}</li>
   <li><strong>Measure Date</strong>: {{ details['cap_date'] }}</li>
   <li><strong>Capacity</strong>: {{ details['mah'] }}mAh</li>

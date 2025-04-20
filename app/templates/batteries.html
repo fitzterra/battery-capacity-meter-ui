@@ -6,20 +6,18 @@
   <thead>
     <tr>
       <th>Battery ID</th>
-      <th>Created</th>
-      <th>Modified</th>
       <th>Measure Date</th>
       <th><strong>Capacity</strong></th>
+      <th>Accuracy</th>
     </tr>
   </thead>
   <tbody>
     {% for b in bats %}
     <tr>
       <td><a href="{{ b['bat_id'] }}/">{{ b['bat_id'] }}</a></td>
-      <td>{{ b['created'] }}</td>
-      <td>{{ b['modified'] }}</td>
       <td>{{ b['cap_date'] }}</td>
       <td data-sort="{{ b['mah'] }}"><strong>{{ b['mah'] }}mAh</strong></td>
+      <td>{{ b['accuracy'] }}</td>
     </tr>
     {% endfor %}
   </tbody>
