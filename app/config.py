@@ -18,17 +18,23 @@ from typing import Any
 from pathlib import Path
 import dotenv
 
-logger = logging.getLogger(__name__)
-
-# This is only needed while developing. We read load the environment from the
+# This is only needed while developing. We load the environment from the
 # .env file one level up from the app dir. While developing this file is
 # available directly, but in prod it will not be, and all environment files
 # will be passed in from the docker compose that will read the prod .env file.
 try:
     if not dotenv.load_dotenv():
-        logger.error("No .env file found to load. Using default env/configs.")
+        print("ERROR: No .env file found to load. Using default env/configs.")
 except Exception as exc:
-    logger.error("Error loading environment:  %s", exc)
+    print(f"Error loading environment: {exc}")
+
+# We set logging up as early as possible. If there is an APP_LOGLEVEL
+# environment variable, we expect it to be "DEBUG", "INFO", etc. If this is a
+# valid log level we will set to that level, else fall back to INFO
+LOGLEVEL = os.getenv("APP_LOGLEVEL") or "INFO"
+logging.basicConfig(level=getattr(logging, LOGLEVEL, logging.INFO))
+
+logger = logging.getLogger(__name__)
 
 
 def envOrDefault(key: str, default: Any = None, conv: callable = None) -> Any:
@@ -44,7 +50,7 @@ def envOrDefault(key: str, default: Any = None, conv: callable = None) -> Any:
     The callable should accept the string as only arg, and return the converted
     value.
 
-    If the callable raises and error, the `default` value passed in will be
+    If the callable raises and error, the ``default`` value passed in will be
     used as the final value.
 
     Args:

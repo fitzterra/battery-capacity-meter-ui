@@ -4,6 +4,12 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /code
 
+# Install any other local packages we may need
+RUN apt update && \
+    apt upgrade -y && \
+    apt install -y git && \
+    apt clean
+
 # Copy the file with the requirements to the /code directory.
 # Copy only the file with the requirements first, not the rest of the code.
 # As this file doesn't change often, Docker will detect it and use the cache
