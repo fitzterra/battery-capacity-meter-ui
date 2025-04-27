@@ -1,0 +1,50 @@
+{% args bat_events, bat_id %}
+{% if bat_events %}
+<table data-name="bat_events">
+  <caption>SoC events for Battery ID: {{ bat_id }}</caption>
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>State</th>
+            <th>SoC UID</th>
+            <th>SOC State</th>
+            <th>Events</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for e in bat_events %}
+      <tr>
+        <td>{{ e[0] }}</td>
+        <td>{{ e[2] }}</td>
+        <td>
+        {% if e[3] %}
+        <a href='/events/measure/{{ bat_id }}/{{ e[3] }}/'>{{ e[3] }}</a>
+        {% endif %}
+        </td>
+        <td>{{ e[4] }}</td>
+        <td>{{ e[5] }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">
+          <div class="grid" style="margin: 1rem;">
+            <button
+              class="bad-action outline contrast"
+              data-confirm-title="Confirm Events Deletion"
+              hx-confirm="Once deleted, these events can not be recovered again.
+                          <br>Are you sure you want to continue?"
+              hx-get="del_events"
+              hx-target="closest div"
+              hx-swap="innerHTML"
+            >Delete all these events</button>
+          </div>
+          <hr />
+        </td>
+      </tr>
+    </tfoot>
+</table>
+{% else %}
+<p>No unallocated events found for battery ID {{ bat_id }}</p>
+{% endif %}

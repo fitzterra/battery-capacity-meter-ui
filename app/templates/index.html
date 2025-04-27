@@ -1,0 +1,113 @@
+{% args content, version %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- Include Pico.css -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css" >
+    <link rel="stylesheet" href="/styles.css">
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+
+    <!-- Charting apps -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+    <!-- Table sorting plugins -->
+    <link
+    href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable-base.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable.min.js"></script>
+
+    <!-- Local app scripts -->
+    <script src="/htmx-pico-confirm.js"></script>
+    <script src="/app.js"></script>
+
+    <title>
+      Battery Capacity Meter UI
+    </title>
+  </head>
+  <body>
+
+    <!-- Header -->
+    <header class="container header">
+      <a href="/"><img class='logo' src='/battery-animated.gif' alt="logo"></a>
+      <h1>
+        Battery Capacity Meter
+      </h1>
+      <span class="version">v{{ version }}</span>
+    </header>
+
+    <div
+      class="container layout"
+      hx-boost="true"
+      hx-target=".main-content"
+      hx-indicator=".htmx-indicator">
+
+      <!-- Navigation Sidebar -->
+      <aside>
+        <nav class="nav-menu">
+          <h4 class="title">
+            Menu
+          </h4>
+
+          <ul>
+            <li>
+              <a href="/events/">Events</a>
+            </li>
+
+            <li>
+              <a href="/bat/">Batteries</a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Spinner loader overlay -->
+      <div class="htmx-indicator loading-overlay" aria-hidden="true">
+        <svg class="spinner" viewBox="0 0 50 50">
+          <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+        </svg>
+      </div>
+
+
+      <!-- Main Content Area -->
+      <div class="error" hx-target="this"></div>
+      <main class="main-content">
+        {% if content %} {{ content }} {% else %}
+        <h3>
+          Welcome to the Battery Capacity Meter UI.
+        </h3>
+
+        <p>
+          Use the menu on the left to navigate to the main sections:
+        </p>
+
+        <article>
+          <header><strong>Events</strong></header>
+          These are raw measurements that have been received from the Battery
+          Capacity Meter(s).
+          <br>
+          From here you will be able to allocate measurement cycles to the
+          battery, and clean up all unneeded remaining events.
+        </article>
+
+        <article>
+          <header><strong>Batteries</strong></header>
+          This is where you can view all known measured batteries.
+          <br>
+          For each battery you will be able to view all linked measurement
+          cycles, plot graphs of the measure events, etc.
+        </article>
+
+        {% endif %}
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,4 +1,3 @@
-
 # Make sure we use bash as the shell.
 SHELL := /usr/bin/env bash
 
@@ -7,7 +6,14 @@ IMAGE_NAME=bat-cap-ui
 DOCKERFILE=Dockerfile
 COMPOSE_FILE=docker-compose.yml
 
-.PHONY: image dev-setup run version bump-major bump-minor bump-patch
+### These are for the doc generation using pydoctor
+# The html output path for the docs
+APP_DOC_DIR=doc/app-docs
+# A symlink for images we will create inside APP_DOC_DIR that links to the
+# `img` dir in the man `doc` dir.
+DOC_IMG_LINK=$(APP_DOC_DIR)/img
+
+.PHONY: image dev-setup run version bump-major bump-minor bump-patch docs dbshell repl compose-conf
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
@@ -27,7 +33,7 @@ define bump_version
 	awk -F. 'BEGIN {OFS="."} {$$$(1)+=1; print $$0}' VERSION > VERSION.tmp && mv VERSION.tmp VERSION
 endef
 
-#
+
 # Build and push Docker image with versioned tags
 image:
 	@docker build -t $(REGISTRY)/$(IMAGE_NAME):$(VERSION) -t $(REGISTRY)/$(IMAGE_NAME):latest . && \
@@ -65,10 +71,26 @@ bump-major:
 	@cat VERSION
 
 
+# Ensure the doc/app-docs/img symlink exists and points to ../img
+doc-img-link:
+	@mkdir -p $(APP_DOC_DIR)
+	@if [ ! -L $(DOC_IMG_LINK) ]; then \
+		echo "Creating symlink: $(DOC_IMG_LINK) -> ../img"; \
+		ln -s ../img $(DOC_IMG_LINK); \
+	elif [ "$$(readlink -f $(DOC_IMG_LINK))" != "$$(readlink -f $(APP_DOC_DIR)/../img)" ]; then \
+		echo "Symlink exists but points to the wrong target. Recreating..."; \
+		rm -f $(DOC_IMG_LINK); \
+		ln -s ../img $(DOC_IMG_LINK); \
+	else \
+		echo "Correct symlink already exists: $(DOC_IMG_LINK)"; \
+	fi
+
 # Builds the docs using pydoctor. Requires the pydoctor python package to have
 # been installed, and also a fully configured pydoctor.ini or similar config
 # file for pydoctor
-docs:
+# Also ensure the `img` symlink in the pydoctor output dir to the main doc/img
+# dir exists.
+docs: doc-img-link
 	@# First determine remote gitlab url from the git remote,
 	@# and also the current branch. This is used to set the
 	@# source URL for the docs
@@ -80,6 +102,24 @@ docs:
 	if [[ $$remote_url == *.git ]]; then \
 	  remote_url=$${remote_url%.git}; \
 	fi && \
-	html_url="$$remote_url/blob/$$branch_name/" && \
-	pydoctor --project-url "$$remote_url" --html-viewsource-base "$$html_url" --template-dir=./pydoctor_templates
+	html_url="$$remote_url/blob/$$branch_name/app" && \
+	pydoctor --html-output $(APP_DOC_DIR) --project-url "$$remote_url" \
+		--html-viewsource-base "$$html_url" --template-dir=./pydoctor_templates
 
+# Connects to the DB using pgcli
+# This relies on the DB_??? settings to be in the .env file
+dbshell:
+	@# Source .env and then connect with pgcli
+	@. .env && pgcli postgres://$${DB_USER}:$${DB_PASS}@$${DB_HOST}/$${DB_NAME}
+
+# Starts a local ipython REPL with the environment set up from .env
+# This will allow connecting to the DB and performing DB operations for example
+# - if the local dev host can connect to the DB
+repl:
+	@# Source .env and export all it's variables to the current shell and then
+	@# start ipython
+	@(set -a; . .env && ipython)
+
+## Shows the compose config
+compose-conf:
+	@docker-compose config

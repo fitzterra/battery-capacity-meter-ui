@@ -9,3 +9,5 @@ pylint
 black
 pydoctor
 ipython
+ipdb
+pgcli
