@@ -658,7 +658,7 @@ class SoCEvent(BaseModel):
     """
 
     id = AutoField()
-    created = DateTimeField(default=datetime.now, index=True)
+    created = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
     bc_name = TextField(index=True)
     state = TextField(index=True)
     bat_id = CharField(index=True, null=True, max_length=20)
@@ -687,3 +687,20 @@ class SoCEvent(BaseModel):
         """
 
         table_name = "soc_event"
+
+
+class Log(BaseModel):
+    """
+    Log entries received via telemetry receivers.
+
+    Attributes:
+        id: Primary key auto incrementing ID
+        created: Created timestamp
+        level: The log level as a string, i.e. 'INFO', "ERROR', etc.
+        msg: The log message. Note that this may be a multi line string.
+    """
+
+    id = AutoField()
+    created = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
+    level = TextField()
+    msg = TextField()
