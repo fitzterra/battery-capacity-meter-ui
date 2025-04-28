@@ -1,5 +1,5 @@
-version: "3.8"
-
+# NOTE: We need at least docker-compose 2.24.0 or later for the environment
+# setup.
 services:
   soc-ui-dev:
     image: darwin:5000/bat-cap-ui:latest
@@ -10,5 +10,8 @@ services:
       - .:/code
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: true
+      - path: .env_local
+        required: false
     command: uvicorn app.main:app --host ${APP_INTF} --port ${APP_PORT} ${UV_ARGS}

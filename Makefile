@@ -13,10 +13,21 @@ APP_DOC_DIR=doc/app-docs
 # `img` dir in the man `doc` dir.
 DOC_IMG_LINK=$(APP_DOC_DIR)/img
 
-.PHONY: image dev-setup run version bump-major bump-minor bump-patch docs dbshell repl compose-conf
+.PHONY: image dev-setup run stop version bump-major bump-minor bump-patch docs dbshell repl compose-conf show-env
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
+
+# Set up a known environment - we have the .env file target that will make the
+# .env symlink if needed.
+include .env
+
+# Also include any local environment variables if .env_local exists
+-include .env_local
+
+# Make sure all the vars we included from the env files are available to any
+# recipes we run
+export
 
 # Function to increment the major, minor or patch part of the version in the
 # VERSION file.
@@ -47,6 +58,10 @@ dev-setup:
 # Start the container in the foreground
 run:
 	docker-compose up
+
+# Stop any running containers
+stop:
+	docker-compose down
 
 # Print current version
 version:
@@ -85,6 +100,26 @@ doc-img-link:
 		echo "Correct symlink already exists: $(DOC_IMG_LINK)"; \
 	fi
 
+# Make sure we have .env symlinked to dot.env-sample
+.env:
+	@if [ -L .env ]; then \
+		if [ "$$(readlink .env)" = "dot.env-sample" ]; then \
+			exit 0; \
+		else \
+			echo ".env exists but points somewhere else. Recreating symlink."; \
+			rm .env; \
+		fi; \
+	elif [ -e .env ]; then \
+		echo ".env exists but is not a symlink. Please fix manually."; \
+		exit 1; \
+	fi
+	@if [ ! -e dot.env-sample ]; then \
+		echo "Error: missing dot.env-sample, cannot create .env!"; \
+		exit 1; \
+	fi
+	@echo "Creating symlink: .env -> dot.env-sample"
+	ln -s dot.env-sample .env
+
 # Builds the docs using pydoctor. Requires the pydoctor python package to have
 # been installed, and also a fully configured pydoctor.ini or similar config
 # file for pydoctor
@@ -107,19 +142,21 @@ docs: doc-img-link
 		--html-viewsource-base "$$html_url" --template-dir=./pydoctor_templates
 
 # Connects to the DB using pgcli
-# This relies on the DB_??? settings to be in the .env file
+# This relies on the DB_??? settings to be in the environment
 dbshell:
 	@# Source .env and then connect with pgcli
-	@. .env && pgcli postgres://$${DB_USER}:$${DB_PASS}@$${DB_HOST}/$${DB_NAME}
+	@pgcli postgres://$${DB_USER}:$${DB_PASS}@$${DB_HOST}/$${DB_NAME}
 
-# Starts a local ipython REPL with the environment set up from .env
+# Starts a local ipython REPL with the environment set up from .env end
+# optionally .env_local as included and then exported above.
 # This will allow connecting to the DB and performing DB operations for example
 # - if the local dev host can connect to the DB
 repl:
-	@# Source .env and export all it's variables to the current shell and then
-	@# start ipython
-	@(set -a; . .env && ipython)
+	@ipython
 
 ## Shows the compose config
 compose-conf:
 	@docker-compose config
+
+show-env:
+	@env
