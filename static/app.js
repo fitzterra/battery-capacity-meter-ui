@@ -1,26 +1,26 @@
-
 /**
  * Application JS
  **/
 
 let currentChart = null; // Track the current chart instance
 
-document.addEventListener('DOMContentLoaded', function () {
+// ---- Chart Handling ----
+function initChartHandler() {
     document.body.addEventListener('htmx:afterOnLoad', function (evt) {
         const plotter = document.querySelector('.plotter');
+        if (!plotter) return;
+
         const canvas = plotter.querySelector('.battery-plot');
+        if (!canvas) return;
 
         try {
             // Read the raw JSON string that was swapped into the <canvas>
             const json = canvas.textContent.trim();
-
-            // Parse it
             const data = JSON.parse(json);
 
-            // Make up a title from the cyucle and cycle number
-            const title = `${data.cycle} cycle ${data.cycle_num}`
+            const title = `${data.cycle} cycle ${data.cycle_num}`;
 
-            // Clear the canvas content
+            // Clear canvas
             canvas.innerHTML = '';
 
             if (!data.success) {
@@ -28,13 +28,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Convert timestamps and values into chart format
             const voltageData = data.plot_data.map(entry => ({
                 x: parseInt(entry.timestamp),
                 y: entry.bat_v
             }));
 
-            // Convert timestamps and values into chart format
             const capacityData = data.plot_data.map(entry => ({
                 x: parseInt(entry.timestamp),
                 y: entry.mah
@@ -42,12 +40,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const currentData = data.plot_data.map(entry => ({
                 x: parseInt(entry.timestamp),
-                y: entry.current 
+                y: entry.current
             }));
-            
+
             const ctx = canvas.getContext('2d');
 
-            // Destroy the previous chart if it exists
             if (currentChart) {
                 currentChart.destroy();
             }
@@ -67,10 +64,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         {
                             label: 'Current (mA)',
                             data: currentData,
-                            yAxisID: 'y1',
-                            borderColor: 'rgb(255, 206, 86)', // yellow-ish
+                            borderColor: 'rgb(255, 206, 86)',
                             tension: 0.2,
-                            pointRadius: 0
+                            pointRadius: 0,
+                            yAxisID: 'y1',
                         },
                         {
                             label: 'Charge (mAh)',
@@ -82,7 +79,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             yAxisID: 'y2',
                         },
                     ]
-
                 },
                 options: {
                     responsive: true,
@@ -160,12 +156,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         },
                         zoom: {
                             zoom: {
-                                wheel: {
-                                    enabled: true,
-                                },
-                                pinch: {
-                                    enabled: true
-                                },
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
                                 mode: 'x',
                             },
                             pan: {
@@ -187,4 +179,61 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     Chart.register(ChartZoom);
-});
+}
+
+// ---- Error Flash Handling ----
+function initErrorHandler() {
+    // The error flash container
+    const errorFlash = document.querySelector('.err-flash');
+
+    if (errorFlash) {
+        // Add an event listener to trigger every time after content was loaded
+        // into this container.
+        errorFlash.addEventListener('htmx:afterSwap', function (evt) {
+            // Show the error container by adding the "visible" class and
+            // clearing any previous slide-out state
+            errorFlash.classList.add('visible');
+            errorFlash.classList.remove('slide-out');
+
+            // Clear any existing timer
+            if (errorFlash._fadeoutTimer) {
+                clearTimeout(errorFlash._fadeoutTimer);
+            }
+
+            // Start new timer to trigger the slide-out animation
+            errorFlash._fadeoutTimer = setTimeout(() => {
+                errorFlash.classList.add('slide-out');
+                errorFlash._fadeoutTimer = null;
+            }, 5000);
+        });
+
+        // Manual dismiss (click to dismiss the error)
+        errorFlash.addEventListener('click', function () {
+             // Stop the timer if the user clicks and it still exists
+            if (errorFlash._fadeoutTimer) {
+                clearTimeout(errorFlash._fadeoutTimer);
+                errorFlash._fadeoutTimer = null;
+            }
+            // Trigger the slide-out animation
+            errorFlash.classList.add('slide-out');
+        });
+
+        // Listen for the completion of the slide-out animation
+        errorFlash.addEventListener('animationend', function () {
+            if (errorFlash.classList.contains('slide-out')) {
+                // The slide-out animation has finished. Reset the state
+                errorFlash.classList.remove('visible');
+                errorFlash.classList.remove('slide-out');
+            }
+        });
+
+    }
+}
+
+// ---- Initialize everything ----
+function init() {
+    initChartHandler();
+    initErrorHandler();
+}
+
+document.addEventListener('DOMContentLoaded', init);
