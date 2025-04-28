@@ -704,3 +704,13 @@ class Log(BaseModel):
     created = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")], index=True)
     level = TextField()
     msg = TextField()
+
+    class Meta:
+        """
+        Model config.
+
+        Attributes:
+            table_name: Name of the table in the database.
+        """
+
+        table_name = "log"

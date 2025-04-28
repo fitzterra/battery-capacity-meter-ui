@@ -1,0 +1,51 @@
+{% args logs, page, pages %}
+<table data-name="logs" class="sortable">
+  <caption>
+    Logs
+  </caption>
+  <thead>
+    <tr>
+      <th style="text-align: left">Timestamp</th>
+      <th class="no-sort" style="text-align: left">Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in logs %}
+    <tr>
+      <td style="white-space: nowrap; text-align: left">{{ l[0] }}</td>
+      <td style="text-align: left">{{ l[1] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    {% if pages > 1 %}
+    <tr>
+      <td colspan=2 class="logs-nav">
+        <a href="?page={{ page - 1 }}"{% if page == 1 %}class="inactive"{% endif %}>❮</a> 
+        {{ page }} / {{ pages }}
+        <a href="?page={{ page + 1 }}"{% if page == pages %}class="inactive"{% endif %}>❯</a> 
+      </td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td colspan=2 style="text-align: left">
+        <details name="cleanup" style="border-bottom: 0">
+          <summary>Clean Up</summary>
+          <form action="cleanup" method="post" hx-post="cleanup" hx-target="closest details">
+            <input
+              type="text"
+              name="before_date"
+              placeholder="yyy-mm-dd hh:mm:ss"
+              aria-label="CleanUp"
+              pattern="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
+              title="Please enter a valid timestamp in the format yyyy-mm-dd hh:mm:ss"
+              required
+            >
+            <input type="submit" value="Delete Before" />
+          </form>
+        </details>
+      </td>
+    </tr>
+  </tfoot>
+</table>
+
