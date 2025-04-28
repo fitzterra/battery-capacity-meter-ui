@@ -108,3 +108,7 @@ DB_PORT = envOrDefault("DB_PORT")
 DB_USER = envOrDefault("DB_USER")
 DB_PASS = envOrDefault("DB_PASS")
 DB_NAME = envOrDefault("DB_NAME")
+
+
+# The number of log entries per page
+LOG_PAGE_LEN = 50

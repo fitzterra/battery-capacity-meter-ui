@@ -20,7 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
-    <!-- Table sorting plugins -->
+    <!-- Table sorting plugins: https://github.com/tofsjonas/sortable-->
     <link
     href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable-base.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable.min.js"></script>
@@ -65,6 +65,10 @@
             <li>
               <a href="/bat/">Batteries</a>
             </li>
+
+            <li>
+              <a href="/logs/">Logs</a>
+            </li>
           </ul>
         </nav>
       </aside>
@@ -78,35 +82,37 @@
 
 
       <!-- Main Content Area -->
-      <div class="error" hx-target="this"></div>
-      <main class="main-content">
-        {% if content %} {{ content }} {% else %}
-        <h3>
-          Welcome to the Battery Capacity Meter UI.
-        </h3>
+      <main>
+        <div class="err-flash"></div>
+        <div class="main-content">
+          {% if content %} {{ content }} {% else %}
+          <h3>
+            Welcome to the Battery Capacity Meter UI.
+          </h3>
 
-        <p>
-          Use the menu on the left to navigate to the main sections:
-        </p>
+          <p>
+            Use the menu on the left to navigate to the main sections:
+          </p>
 
-        <article>
-          <header><strong>Events</strong></header>
-          These are raw measurements that have been received from the Battery
-          Capacity Meter(s).
-          <br>
-          From here you will be able to allocate measurement cycles to the
-          battery, and clean up all unneeded remaining events.
-        </article>
+          <article>
+            <header><strong>Events</strong></header>
+            These are raw measurements that have been received from the Battery
+            Capacity Meter(s).
+            <br>
+            From here you will be able to allocate measurement cycles to the
+            battery, and clean up all unneeded remaining events.
+          </article>
 
-        <article>
-          <header><strong>Batteries</strong></header>
-          This is where you can view all known measured batteries.
-          <br>
-          For each battery you will be able to view all linked measurement
-          cycles, plot graphs of the measure events, etc.
-        </article>
+          <article>
+            <header><strong>Batteries</strong></header>
+            This is where you can view all known measured batteries.
+            <br>
+            For each battery you will be able to view all linked measurement
+            cycles, plot graphs of the measure events, etc.
+          </article>
 
-        {% endif %}
+          {% endif %}
+        </div>
       </main>
     </div>
   </body>

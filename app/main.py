@@ -4,6 +4,8 @@ Main application entry point.
 
 import os
 import logging
+import re
+from datetime import datetime
 
 from microdot.asgi import Microdot, Response, redirect, send_file
 from microdot.utemplate import Template
@@ -19,6 +21,8 @@ from app.models.data import (
     getBatteryHistory,
     getBatMeasurementByUID,
     getBatMeasurementPlotData,
+    getLogs,
+    delLogs,
 )
 from app.models.utils import measureSummary, setCapacityFromSocUID
 
@@ -48,6 +52,39 @@ if MOUNT_APP_DOCS:
 # app.mount("/static", StaticFiles(directory=STATIC_PATH), name="static")
 
 
+def errorResponse(msg):
+    """
+    Any URL handler that needs to flash an error message can call this
+    function, passing in the error message and then returning the response
+    generated here.
+
+    More details.....
+
+    Args:
+        msg: This is either a single string or a list of strings to flash as
+            error message(s). If it's a list, it will be render as items in an
+            unordered list (<ul>). The message(s) may contain minimal HTML
+            markup if needed.
+    """
+    # Generate the output HTML
+    if isinstance(msg, str):
+        # A simple error message goes into a div
+        html = f'<div class="message">{msg}</div>'
+    else:
+        # Multiple messages goes into a list
+        html = '<ul class="message-list">'
+        html += "".join([f"<li>{m}</li>" for m in msg])
+        html += "</ul>"
+
+    # Create Microdot Response
+    response = Response(body=html)
+    # We will change the target for the response to the .error container,
+    # overriding any default target from the original request.
+    response.headers["HX-Retarget"] = ".err-flash"
+
+    return response
+
+
 @app.get("/")
 async def index(_):
     """
@@ -67,9 +104,13 @@ async def events(req):
     evts = getUnallocatedEvents()
     content = Template("unallocated_events.html").render(events=evts)
 
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
     return Template("index.html").render(content=content, version=VERSION)
 
 
@@ -114,9 +155,13 @@ async def batEvents(req, bat_id):
     evts = getBatUnallocSummary(bat_id)
     content = Template("events_bat_id.html").render(bat_events=evts, bat_id=bat_id)
 
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
     return Template("index.html").render(content=content, version=VERSION)
 
 
@@ -159,9 +204,13 @@ async def uidEvents(req, bat_id, uid):
         sum=summary, bat_id=bat_id, uid=uid
     )
 
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
     return Template("index.html").render(content=content, version=VERSION)
 
 
@@ -236,9 +285,13 @@ async def batteries(req):
 
     content = Template("batteries.html").render(bats=bats)
 
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
     return Template("index.html").render(content=content, version=VERSION)
 
 
@@ -262,9 +315,13 @@ async def batHistory(req, bat_id):
 
     content = Template("battery_history.html").render(bat=bat, hist=hist, err=err)
 
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
     return Template("index.html").render(content=content, version=VERSION)
 
 
@@ -289,9 +346,13 @@ async def batMeasureUID(req, bat_id, uid):
         details=details, cycles=cycles, err=err
     )
 
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
     return Template("index.html").render(content=content, version=VERSION)
 
 
@@ -304,6 +365,73 @@ async def batMeasureUIDPlot(_, bat_id, uid, plot_ind):
     plot = getBatMeasurementPlotData(bat_id, uid, plot_ind)
 
     return plot
+
+
+@app.get("/logs/")
+async def viewLogs(req):
+    """
+    List available logs...
+    """
+
+    page = int(req.args.get("page", 1))
+    res = getLogs(page)
+
+    content = Template("logs.html").render(**res)
+
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
+    if req.headers.get("Hx-Request", "false") == "true":
+        return content
+
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
+    return Template("index.html").render(content=content, version=VERSION)
+
+
+@app.route("/logs/cleanup", methods=["POST"])
+def deleteLogs(req):
+    """
+    Handles deleting all log entries before a given date.
+
+    Expects a "before_date" post variable as a string in the format::
+
+        yyyy-mm-dd hh:mm:ss
+
+    """
+    logging.info("Requesting to delete logs...")
+    # If we are not called from and HTMX request, we redirect to the main logs
+    # view page
+    if req.headers.get("Hx-Request", "false") == "false":
+        logging.info("  Not an HTMX request. Redirecting to /logs/ ..")
+        return redirect("/logs/")
+
+    before_date = req.form.get("before_date")
+    # Check if the format matches the expected timestamp pattern
+    ts_pattern = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
+    if not re.match(ts_pattern, before_date):
+        return errorResponse(f"Invalid timestamp format: {before_date}")
+
+    # Convert the string to a datetime object if valid
+    try:
+        before_date = datetime.strptime(before_date, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return errorResponse(f"Invalid timestamp value: {before_date}")
+
+    logging.info("  Logs before %s to deleted", before_date)
+
+    res = delLogs(before_date)
+
+    if not res["success"]:
+        return errorResponse(res["msg"])
+
+    logging.info("  Logs delete result: %s", res)
+    # Redirect to '/logs/'
+    # Because the request came from HTMX, we need to handle the redirect
+    # differently, or else the redirect URL will not be followed as a new page
+    # request
+    response = Response(status_code=302)
+    response.headers["HX-Redirect"] = "/logs/"
+    return response
 
 
 @app.get("/<path:path>")

@@ -78,7 +78,7 @@
 }
 
 /* Main Content */
-.main-content {
+main {
     flex-grow: 1;
     padding: 1rem;
     background-color: var(--background);
@@ -279,4 +279,54 @@ span.version {
 table td,
 table th {
     text-align: right;
+}
+
+/* Inactive logs page navigation anchors. */ 
+table td.logs-nav a.inactive {
+    pointer-events: none;
+    color: gray;
+}
+
+/* The global error flasher div */
+/* Base styles for the error flash */
+.err-flash {
+  display: none; /* Initially hidden */
+  padding: 0.8rem;
+  margin: 0 0 0.5rem;
+  border: 1px solid var(--pico-color-red-400);
+  border-radius: var(--border-radius);
+  background-color: var(--pico-color-red-350);
+  color: var(--pico-color-red-950);
+  max-height: 0;
+  overflow: hidden;
+  transform: translateY(10px); /* Start below */
+  transition: transform 0.3s ease, max-height 0.3s ease; /* Optional: control expansion timing */
+}
+
+/* When the error message is shown */
+.err-flash.visible {
+  display: block;
+  max-height: 200px; /* Allow the content to expand */
+  transform: translateY(0); /* Reset the transform */
+  transition: transform 0.8s ease, max-height 0.8s ease; /* Smooth expand */
+  cursor: pointer;
+}
+
+/* Slide and shrink animation for disappearing */
+@keyframes slideOut {
+  0% {
+    transform: translateY(0);
+    max-height: 200px;
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50px); /* Slide up */
+    max-height: 0;
+    opacity: 0;
+  }
+}
+
+/* Class to trigger slide-out animation */
+.err-flash.slide-out {
+  animation: slideOut 0.8s forwards ease-out;
 }
