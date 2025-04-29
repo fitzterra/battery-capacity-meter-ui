@@ -109,7 +109,7 @@ async def events(req):
     if req.headers.get("Hx-Request", "false") == "true":
         return content
 
-    # This is not a direct HTMX request, so we it must an attempt to render the
+    # This is not a direct HTMX request, so it must be an attempt to render the
     # full URL, so we render the full site including the part template.
     return Template("index.html").render(content=content, version=VERSION)
 
