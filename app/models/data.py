@@ -49,11 +49,11 @@ def getUnallocatedEvents(raw_dates: bool = False) -> Iterable[dict]:
         query = (
             SoCEvent.select(
                 SoCEvent.bat_id,
-                fn.DATE(SoCEvent.created).alias("date"),
+                fn.DATE(fn.MIN(SoCEvent.created)).alias("date"),
                 fn.SUM(1).alias("events"),
             )
             .where(SoCEvent.bat_history == None)  # pylint: disable=singleton-comparison
-            .group_by(SoCEvent.bat_id, SQL("date"))
+            .group_by(SoCEvent.bat_id)
             .order_by(SoCEvent.bat_id)
         )
 
