@@ -5,6 +5,9 @@ REGISTRY=darwin:5000
 IMAGE_NAME=bat-cap-ui
 DOCKERFILE=Dockerfile
 COMPOSE_FILE=docker-compose.yml
+# This should probably be in an env file and imported into the environment
+# both for here and also for the compose file.
+CONTAINER_NAME=soc-ui-dev
 
 ### These are for the doc generation using pydoctor
 # The html output path for the docs
@@ -13,7 +16,8 @@ APP_DOC_DIR=doc/app-docs
 # `img` dir in the man `doc` dir.
 DOC_IMG_LINK=$(APP_DOC_DIR)/img
 
-.PHONY: image dev-setup run stop version bump-major bump-minor bump-patch docs dbshell repl compose-conf show-env
+.PHONY: image dev-setup run stop version bump-major bump-minor bump-patch \
+	    docs dbshell repl rem-repl shell compose-conf show-env
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
@@ -153,6 +157,16 @@ dbshell:
 # - if the local dev host can connect to the DB
 repl:
 	@ipython
+
+# Starts ipython in the container after installing ipython if it is not already
+# installed.
+rem-repl:
+	@docker exec -ti $(CONTAINER_NAME) bash -c "pip install ipython; ipython"
+
+
+# Runs bash inside the container
+shell:
+	@docker exec -ti $(CONTAINER_NAME) bash
 
 ## Shows the compose config
 compose-conf:
