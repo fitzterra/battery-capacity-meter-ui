@@ -15,6 +15,7 @@ from app.models.data import (
     delUnallocBatEvents,
     delDanglingEvents,
     delBatUIDEvents,
+    delExtraSoCEvent,
     getBatUnallocSummary,
     getBatteryDetails,
     getKnownBatteries,
@@ -190,6 +191,44 @@ async def delBatEvents(_, bat_id):
         "     <a href='/events/'>Return to events list view</a>"
         "</atricle>"
     )
+
+
+@app.get("events/bat_id/<bat_id>/del_extra/<soc_id>")
+async def delExtraEvent(req, bat_id, soc_id):
+    """
+    Deletes extra "Charging" event that stops us from record a battery
+    measurement by UID.
+
+    At times there is a "stray" measurement event just before the "Completed"
+    event in a set of measurement events. This one extra events throws the
+    `setUIDHistory` call off because it expects a specific sequence of
+    measurement events.
+
+    This event is always identifiable as a sincle event in the events group,
+    with ``state`` as "Charged" and ``soc_state`` as "Charging". Unfortunately
+    there may be more than one of these per cycle, so the
+    ``events_bat_id.html`` template will add an link to delete any such
+    entries.
+
+    This link brings us here.
+
+    Args:
+        req: Microdot request object
+        bat_id: The battery ID
+        soc_id: The `SocEvent` ID that needs to be deleted.
+    """
+    # If this did not come in via htmx request, we redirect to the base URL so
+    # that we can be sure to always get here from an HTMX get
+    if req.headers.get("Hx-Request", "false") == "false":
+        return redirect(f"/events/bat_id/{bat_id}/")
+
+    # Delete unallocated events
+    res = delExtraSoCEvent(bat_id, soc_id)
+
+    if not res["success"]:
+        return errorResponse(res["msg"])
+
+    return redirect(f"/events/bat_id/{bat_id}/")
 
 
 @app.get("events/measure/<bat_id>/<uid>/")

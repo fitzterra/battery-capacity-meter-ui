@@ -105,7 +105,7 @@ def delDanglingEvents() -> dict:
     return res
 
 
-def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[tuple]:
+def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[dict]:
     """
     Generator that returns a summary of all unallocated events for the given
     battery ID.
@@ -119,6 +119,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[t
 
         WITH consecutive_events AS (
         SELECT
+            id,
             created,
             bat_id,
             state,
@@ -132,6 +133,8 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[t
             bat_id = '<battery_id>' AND bat_history is NULL
         )
         SELECT
+            MIN(id) AS id_start, -- The id of the first event in the group
+            MAX(id) AS id_end, -- The id of the last event in the group
             MIN(created) AS event_time, -- The first occurrence in each group
             bat_id,
             state,
@@ -147,38 +150,51 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[t
 
     The result from this query may look like this::
 
-        +----------------------------+------------+-------------+----------+----------------+-------------+
-        | event_time                 | bat_id     | state       | soc_uid  | soc_state      | event_count |
-        |----------------------------+------------+-------------+----------+----------------+-------------|
-        | 2025-02-04 16:12:44.966774 | 2025020401 | Battery+ID  | <null>   | <null>         | 3           |
-        | 2025-02-04 16:12:48.348954 | 2025020401 | Charging    | e30cfb16 | Initial Charge | 2318        |
-        | 2025-02-04 16:57:24.931618 | 2025020401 | Charged     | e30cfb16 | Resting        | 1           |
-        | 2025-02-04 17:02:25.528027 | 2025020401 | Discharging | e30cfb16 | Discharging    | 13827       |
-        | 2025-02-04 21:28:29.135872 | 2025020401 | Discharged  | e30cfb16 | Resting        | 1           |
-        | 2025-02-04 21:33:06.881902 | 2025020401 | Charging    | e30cfb16 | Charging       | 15623       |
-        | 2025-02-05 02:33:35.720401 | 2025020401 | Charged     | e30cfb16 | Resting        | 1           |
-        | 2025-02-05 02:38:35.495934 | 2025020401 | Discharging | e30cfb16 | Discharging    | 13781       |
-        | 2025-02-05 07:03:43.768603 | 2025020401 | Discharged  | e30cfb16 | Resting        | 1           |
-        | 2025-02-05 07:06:44.319853 | 2025020401 | Charging    | e30cfb16 | Charging       | 14055       |
-        | 2025-02-05 11:37:05.163452 | 2025020401 | Charged     | e30cfb16 | Completed      | 1           |
-        | 2025-02-05 17:12:14.572511 | 2025020401 | Yanked      | <null>   | <null>         | 1           |
-        +----------------------------+------------+-------------+----------+----------------+-------------+
+        +-------+-------+----------------------------+------------+-------------+----------+----------------+-------------+
+        | id_st | id_en | event_time                 | bat_id     | state       | soc_uid  | soc_state      | event_count |
+        |-------+-------+----------------------------+------------+-------------+----------+----------------+-------------|
+        | 34521 | 34523 | 2025-02-04 16:12:44.966774 | 2025020401 | Battery+ID  | <null>   | <null>         | 3           |
+        | 34524 | 36841 | 2025-02-04 16:12:48.348954 | 2025020401 | Charging    | e30cfb16 | Initial Charge | 2318        |
+        | 36841 | 36842 | 2025-02-04 16:57:24.931618 | 2025020401 | Charged     | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-04 17:02:25.528027 | 2025020401 | Discharging | e30cfb16 | Discharging    | 13827       |
+        | .     | .     | 2025-02-04 21:28:29.135872 | 2025020401 | Discharged  | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-04 21:33:06.881902 | 2025020401 | Charging    | e30cfb16 | Charging       | 15623       |
+        | .     | .     | 2025-02-05 02:33:35.720401 | 2025020401 | Charged     | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-05 02:38:35.495934 | 2025020401 | Discharging | e30cfb16 | Discharging    | 13781       |
+        | .     | .     | 2025-02-05 07:03:43.768603 | 2025020401 | Discharged  | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-05 07:06:44.319853 | 2025020401 | Charging    | e30cfb16 | Charging       | 14055       |
+        | .     | .     | 2025-02-05 11:37:05.163452 | 2025020401 | Charged     | e30cfb16 | Completed      | 1           |
+        | .     | .     | 2025-02-05 17:12:14.572511 | 2025020401 | Yanked      | <null>   | <null>         | 1           |
+        +-------+-------+----------------------------+------------+-------------+----------+----------------+-------------+
 
-    ... and will yield the following list of tuples::
+    ... and will yield the following list of dicts::
 
-        [(datetime.datetime(2025, 2, 4, 16, 12, 44, 966774), '2025020401', 'Battery+ID', None, None, 3),
-         (datetime.datetime(2025, 2, 4, 16, 12, 48, 348954), '2025020401', 'Charging', 'e30cfb16', 'Initial Charge', 2318),
-         (datetime.datetime(2025, 2, 4, 16, 57, 24, 931618), '2025020401', 'Charged', 'e30cfb16', 'Resting', 1),
-         (datetime.datetime(2025, 2, 4, 17, 2, 25, 528027), '2025020401', 'Discharging', 'e30cfb16', 'Discharging', 13827),
-         (datetime.datetime(2025, 2, 4, 21, 28, 29, 135872), '2025020401', 'Discharged', 'e30cfb16', 'Resting', 1),
-         (datetime.datetime(2025, 2, 4, 21, 33, 6, 881902), '2025020401', 'Charging', 'e30cfb16', 'Charging', 15623),
-         (datetime.datetime(2025, 2, 5, 2, 33, 35, 720401), '2025020401', 'Charged', 'e30cfb16', 'Resting', 1),
-         (datetime.datetime(2025, 2, 5, 2, 38, 35, 495934), '2025020401', 'Discharging', 'e30cfb16', 'Discharging', 13781),
-         # When raw_dates is False (default)
-         ("2025-02-05 07:03:43"), '2025020401', 'Discharged', 'e30cfb16', 'Resting', 1),
-         ("2025-02-05 07:06:44"), '2025020401', 'Charging', 'e30cfb16', 'Charging', 14055),
-         ("2025-02-05 11:37:05"), '2025020401', 'Charged', 'e30cfb16', 'Completed', 1),
-         ("2025-02-05 17:12:14"), '2025020401', 'Yanked', None, None, 1)]
+        [
+            {
+                'id_start': 34521,
+                'id_end': 34523,
+                'event_time': datetime.datetime(2025, 2, 4, 16, 12, 44, 966774),
+                'bat_id': '2025020401',
+                'state': 'Battery+ID',
+                'soc_uid': None,
+                'soc_state': None,
+                'event_count': 3,
+            }
+            .
+            .
+            .
+            # When raw_dates is False (default)
+            {
+                'id_start': ...,
+                'id_end': ...,
+                'event_time': "2025-02-05 17:12:14"),
+                'bat_id': '2025020401',
+                'state': 'Yanked',
+                'soc_uid': None,
+                'soc_state': None,
+                'event_count': 1,
+            }
+        ]
 
     Args:
         battery_id: The battery ID to get the events for.
@@ -187,11 +203,8 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[t
             string
 
     Yields:
-        A 6-tuple as mentioned above.
+        A dictionary as shown above..
     """  # pylint: disable=line-too-long
-
-    # TODO: Yield dictionaries instead of tuples like the rest of the data
-    # functions.
 
     with db.connection_context():
         # Aliases for clarity
@@ -212,6 +225,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[t
         # Define the CTE (Common Table Expression)
         consecutive_events = (
             SoCEvent.select(
+                SoCEvent.id,
                 created,
                 bat_id,
                 state,
@@ -229,6 +243,8 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[t
         # Main query using the CTE
         query = (
             SoCEvent.select(
+                fn.MIN(consecutive_events.c.id).alias("id_start"),
+                fn.MAX(consecutive_events.c.id).alias("id_end"),
                 fn.MIN(consecutive_events.c.created).alias("event_time"),
                 consecutive_events.c.bat_id,
                 consecutive_events.c.state,
@@ -250,7 +266,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[t
 
         # We need to convert the datetime objects to date time strings for each
         # entry if raw_dates is True
-        for row in query.tuples():
+        for row in query.dicts():
             if raw_dates:
                 yield row
             else:
@@ -333,6 +349,49 @@ def delBatUIDEvents(bat_id: str, uid: str) -> dict:
             # All good, update res
             res["success"] = True
             res["msg"] = f"Deleted {cnt} events for bat ID {bat_id} and UID {uid}"
+
+    return res
+
+
+def delExtraSoCEvent(bat_id: str, soc_id: str | int) -> dict:
+    """
+    Deletes _stray_ "Charging" `SoCEvent` entries.
+
+    See the description for `delExtraEvent` for more details.
+
+    This will delete the given ``soc_id`` for the given ``bat_id``.
+
+    Args:
+        bat_id: The battery ID
+        soc_id: The `SoCEvent` ID for this battery ID to delete.
+    """
+    res = {"success": False, "msg": ""}
+
+    # If this is from the page handler, the soc_id may be a string, so we
+    # convert it to an integer.
+    if isinstance(soc_id, str) and soc_id.isnumeric():
+        soc_id = int(soc_id)
+
+    with db.connection_context():
+        try:
+            query = SoCEvent.delete().where(
+                SoCEvent.id == soc_id,
+                SoCEvent.bat_id == bat_id,
+            )
+            cnt = query.execute()
+        except Exception as exc:
+            res["msg"] = (
+                f"Error deleting SoCEvent with ID {soc_id} for bat ID {bat_id}: {exc}"
+            )
+        else:
+            if cnt != 1:
+                res["msg"] = (
+                    f"No SoCEvent found with ID {soc_id} for bat ID {bat_id} to delete"
+                )
+            else:
+                # All good, update res
+                res["success"] = True
+                res["msg"] = f"Deleted SoCEvent ID {soc_id} for bat ID {bat_id}"
 
     return res
 
