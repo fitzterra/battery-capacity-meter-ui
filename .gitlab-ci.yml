@@ -45,6 +45,10 @@ build-image:
     - docker:dind
   variables:
     DOCKER_HOST: tcp://docker:2375/
+    LOC_DB_HOST: nodered
+    LOC_DB_USER: iot
+    LOC_DB_PASS: shitFlies
+    LOC_DB_NAME: battery_cap
   before_script:
     # The docker:lastest image is based on Alpine, so we use apk to add some
     # more things we will need.
