@@ -43,6 +43,7 @@ build-image:
     # will be needed to do all the build and push work. This daemon is
     # accessible as the DOCKER_HOST variable define below
     - docker:dind
+      command: ["--insecure-registry=darwin:5000"]
   variables:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_TLS_CERTDIR: ""  # Disable TLS for Docker-in-Docker
