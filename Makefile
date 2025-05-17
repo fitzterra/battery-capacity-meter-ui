@@ -136,7 +136,10 @@ docs: doc-img-link
 	@remote_url=$$(git config --get remote.origin.url) && \
 	branch_name=$$(git branch --show-current) && \
 	if [[ $$remote_url == git@* ]]; then \
-	  remote_url=$$(echo "$$remote_url" | sed -e 's/:/\//' -e 's/^git@/http:\/\//'); \
+	  remote_url=$$(echo "$$remote_url" | sed -e 's/:/\//' -e 's|^git@|http://|'); \
+	fi && \
+	if [[ $$remote_url == *gitlab-ci-token* ]]; then \
+		remote_url=$$(echo "$$remote_url" | sed -e 's|^.*@|https://|'); \
 	fi && \
 	if [[ $$remote_url == *.git ]]; then \
 	  remote_url=$${remote_url%.git}; \

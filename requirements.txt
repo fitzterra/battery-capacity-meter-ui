@@ -18,7 +18,7 @@ uvicorn==0.34.0
 # This is only needed for development to allow uvicorn to reload on file
 # changes.
 # TODO: find a way to only install in a dev environment and not prod
-watchfiles=1.0.5
+watchfiles==1.0.5
 
 # -- Environment --
 python-dotenv==1.0.1
