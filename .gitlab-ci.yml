@@ -1,15 +1,18 @@
+# Base image for jobs not overriding it explicitly
 image: python:3.11
 
 stages:
   - docs
+  - build
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  #ENV_FILE: .env  # Expected symlink to dot.env-sample - make will do this
 
 before_script:
   - python -m pip install --upgrade pip
-  - pip install pydoctor
 
+# Documentation build and GitLab Pages publish job
 pages:
   stage: docs
   image: python:3.11
@@ -28,4 +31,39 @@ pages:
     paths:
       - public
 
+# Docker image build using Makefile and .env_local generation from LOC_ vars
+build-image:
+  stage: build
+  # We use the default docker build image for this that already has all the
+  # docker tools needed for building and pushing the image to the registry.
+  # This is based on Alpine.
+  image: docker:latest
+  services:
+    # This starts a Docker-in-Docker service which is the docker daemon that
+    # will be needed to do all the build and push work. This daemon is
+    # accessible as the DOCKER_HOST variable define below
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+  before_script:
+    # The docker:lastest image is based on Alpine, so we use apk to add some
+    # more things we will need.
+    - apk add --no-cache bash coreutils
+    - |
+      echo "Generating .env_local from CI variables with LOC_ prefix..."
+      {
+        echo "# Auto-generated .env_local from CI/CD pipeline"
+        printenv | grep '^LOC_' | while IFS='=' read -r key val; do
+          stripped_key="${key#LOC_}"
+          printf '%s=%s\n' "$stripped_key" "$val"
+        done
+      } > .env_local
+    - cat .env_local  # Optional: debug output
+  script:
+    - make image
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: always
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_rc\d+$/'
+      when: always
 
