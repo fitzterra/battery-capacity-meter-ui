@@ -14,7 +14,7 @@ stages:
 # debugging, but this will reveal secrets, so make sure this OK, or remove the
 # `cat` line at the end.
 .env_local_gen: &env_local_gen
-  - |
+  - >
     echo "Generating .env_local from CI variables with LOC_ prefix..."
     {
       echo "# Auto-generated .env_local from CI/CD pipeline"
@@ -67,7 +67,7 @@ build-image:
     # more things we will need.
     - apk add --no-cache bash coreutils make
     # Insert the anchor block alias here to generate .env_local
-    <<: *env_local_gen
+    - *env_local_gen
   script:
     - make image
   rules:
@@ -84,7 +84,7 @@ deploy:
     # more things we will need.
     - apk add --no-cache openssh bash coreutils make
     # Insert the anchor block alias here to generate .env_local
-    <<: *env_local_gen
+    - *env_local_gen
   script:
     - make deploy
   rules:
