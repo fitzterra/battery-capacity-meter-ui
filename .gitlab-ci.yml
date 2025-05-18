@@ -82,7 +82,7 @@ deploy:
   before_script:
     # The docker:lastest image is based on Alpine, so we use apk to add some
     # more things we will need.
-    - apk add --no-cache openssh bash coreutils make
+    - apk add --no-cache bash coreutils make
     # Insert the anchor block alias here to generate .env_local
     - *env_local_gen
     # SSH setup
