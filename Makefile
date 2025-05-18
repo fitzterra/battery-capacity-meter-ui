@@ -104,26 +104,6 @@ doc-img-link:
 		echo "Correct symlink already exists: $(DOC_IMG_LINK)"; \
 	fi
 
-# Make sure we have .env symlinked to dot.env-sample
-.env:
-	@if [ -L .env ]; then \
-		if [ "$$(readlink .env)" = "dot.env-sample" ]; then \
-			exit 0; \
-		else \
-			echo ".env exists but points somewhere else. Recreating symlink."; \
-			rm .env; \
-		fi; \
-	elif [ -e .env ]; then \
-		echo ".env exists but is not a symlink. Please fix manually."; \
-		exit 1; \
-	fi
-	@if [ ! -e dot.env-sample ]; then \
-		echo "Error: missing dot.env-sample, cannot create .env!"; \
-		exit 1; \
-	fi
-	@echo "Creating symlink: .env -> dot.env-sample"
-	ln -s dot.env-sample .env
-
 # Builds the docs using pydoctor. Requires the pydoctor python package to have
 # been installed, and also a fully configured pydoctor.ini or similar config
 # file for pydoctor
