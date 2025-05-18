@@ -1,22 +1,37 @@
-# Base image for jobs not overriding it explicitly
-image: python:3.11
-
 stages:
   - docs
   - build
+  - deploy
 
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  #ENV_FILE: .env  # Expected symlink to dot.env-sample - make will do this
 
-before_script:
-  - python -m pip install --upgrade pip
+# Anchor block that dynamically generates a .env_local file from all CI
+# variables prefixed with LOC_.
+# It will look for any environment variables prefixed with LOC_, strip the LOC_
+# prefix and write the remaining and the value to the .env_local file, which
+# will be imported by the Makefile when running any targets later. These LOC_
+# variables will normally be set in the repo CI/CD section as pipeline vars.
+# NOTE: currently the locally generate .env_local will be echod to stdout for
+# debugging, but this will reveal secrets, so make sure this OK, or remove the
+# `cat` line at the end.
+.env_local_gen: &env_local_gen
+  - |
+    echo "Generating .env_local from CI variables with LOC_ prefix..."
+    {
+      echo "# Auto-generated .env_local from CI/CD pipeline"
+      printenv | grep '^LOC_' | while IFS='=' read -r key val; do
+        stripped_key="${key#LOC_}"
+        printf '%s=%s\n' "$stripped_key" "$val"
+      done
+    } > .env_local
+  - cat .env_local
+
 
 # Documentation build and GitLab Pages publish job
 pages:
   stage: docs
   image: python:3.11
   before_script:
+    - python -m pip install --upgrade pip
     - pip install pydoctor
   script:
     - make docs
@@ -47,29 +62,34 @@ build-image:
   variables:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_TLS_CERTDIR: ""  # Disable TLS for Docker-in-Docker
-    LOC_DB_HOST: nodered
-    LOC_DB_USER: iot
-    LOC_DB_PASS: shitFlies
-    LOC_DB_NAME: battery_cap
   before_script:
     # The docker:lastest image is based on Alpine, so we use apk to add some
     # more things we will need.
     - apk add --no-cache bash coreutils make
-    - |
-      echo "Generating .env_local from CI variables with LOC_ prefix..."
-      {
-        echo "# Auto-generated .env_local from CI/CD pipeline"
-        printenv | grep '^LOC_' | while IFS='=' read -r key val; do
-          stripped_key="${key#LOC_}"
-          printf '%s=%s\n' "$stripped_key" "$val"
-        done
-      } > .env_local
-    - cat .env_local  # Optional: debug output
+    # Insert the anchor block alias here to generate .env_local
+    <<: *env_local_gen
   script:
     - make image
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
       when: always
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_rc\d+$/'
+      when: always
+
+deploy:
+  stage: deploy
+  image: docker:latest
+  before_script:
+    # The docker:lastest image is based on Alpine, so we use apk to add some
+    # more things we will need.
+    - apk add --no-cache openssh bash coreutils make
+    # Insert the anchor block alias here to generate .env_local
+    <<: *env_local_gen
+  script:
+    - make deploy
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: always
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_deploy\d+$/'
       when: always
 
