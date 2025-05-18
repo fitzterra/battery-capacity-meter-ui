@@ -15,7 +15,7 @@ stages:
 # `cat` line at the end.
 .env_local_gen: &env_local_gen
   - >
-    echo "Generating .env_local from CI variables with LOC_ prefix..."
+    echo "Generating .env_local from CI variables with LOC_ prefix..." &&
     {
       echo "# Auto-generated .env_local from CI/CD pipeline"
       printenv | grep '^LOC_' | while IFS='=' read -r key val; do
