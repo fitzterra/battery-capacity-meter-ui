@@ -87,9 +87,9 @@ deploy:
     - *env_local_gen
     # SSH setup
     - mkdir -p ~/.ssh
-    - cp "$DEPLOY_KEY_FILE" ~/.ssh/id_ed25519
+    - cp "$DEPLOY_KEY_FILE" ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_ed25519
-    - cp "$DEPLOY_PUBKEY_FILE" ~/.ssh/id_ed25519.pub
+    - cp "$DEPLOY_PUBKEY_FILE" ~/.ssh/id_rsa.pub
     - chmod 644 ~/.ssh/id_ed25519.pub
     - ssh-keyscan -H $LOC_DEPLOY_HOST >> ~/.ssh/known_hosts
   script:
