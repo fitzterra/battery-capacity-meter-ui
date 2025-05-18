@@ -89,10 +89,6 @@ deploy:
 	@[[ -f .env && -f .env_local ]] || { echo ".env and .env_local is required"; exit 1; }
 	@echo "Merging .env and .env_local..."
 	@cat .env .env_local 2>/dev/null | grep -E '^[a-zA-Z0-9._]+=' > $(MERGED_ENV)
-	@cat /root/.ssh/id_rsa
-	@md5sum /root/.ssh/id_rsa
-	@ssh -v $(DEPLOY_USER)@$(DEPLOY_HOST) "id && ls -l"
-	@exit 1
 	@echo "Deploying version $(VERSION) to $(DEPLOY_HOST)..."
 	@scp $(MERGED_ENV) $(DEPLOY_USER)@$(DEPLOY_HOST):$(MERGED_ENV)
 	@rm -f $(MERGED_ENV)
