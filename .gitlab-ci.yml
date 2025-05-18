@@ -91,9 +91,6 @@ deploy:
     - chmod 600 ~/.ssh/id_rsa
     - cp "$DEPLOY_PUBKEY_FILE" ~/.ssh/id_rsa.pub
     - chmod 644 ~/.ssh/id_rsa.pub
-    - ssh-keyscan -H $LOC_DEPLOY_HOST >> ~/.ssh/known_hosts
-    - ls -l ~/.ssh
-    - cat ~/.ssh/id_rsa
   script:
     - make deploy
   rules:
