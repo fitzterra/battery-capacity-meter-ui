@@ -40,6 +40,8 @@ pages:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
       when: always
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_rc\d+$/'
+      when: always
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_docs_\d+$/'
       when: always
   artifacts:
@@ -97,6 +99,8 @@ deploy:
     - make deploy
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: always
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_rc\d+$/'
       when: always
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_deploy\d+$/'
       when: always
