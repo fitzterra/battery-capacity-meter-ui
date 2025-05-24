@@ -47,5 +47,5 @@ The production version can be found [here](http://darwin.gaul.za:8088/)
 [HTMX]: https://htmx.org/
 [PicoCSS]: https://picocss.com/
 [pydoctor]: https://pydoctor.readthedocs.io/
-[app docs]: http://gaulnet.pages.gaul.za/battery-capacity-meter-ui/
+[app docs]: http://pages.gaul.za/gaulnet/battery-capacity-meter-ui/
 
