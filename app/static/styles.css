@@ -330,3 +330,12 @@ table td.logs-nav a.inactive {
 .err-flash.slide-out {
   animation: slideOut 0.8s forwards ease-out;
 }
+
+/* The X mark to delte a single record in the Events Summary display for all
+ * soc events for a battery. This is used to delete stray charge events that
+ * stops us from recording this as measurement.
+ */
+a.rec_delete {
+    position: absolute; /* This moves it to the right of the number */
+    color: red;
+}

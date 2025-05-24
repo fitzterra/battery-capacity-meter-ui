@@ -89,8 +89,12 @@ APP_DOCS_PATH = "app-docs"
 # Whether the app docs should be mounted or not
 MOUNT_APP_DOCS = True
 
+# The app dir is the directory where this file config file lives in, and is
+# normally /app in the top level repo dir.
+APP_DIR = os.path.dirname(__file__)
+
 # Static files path
-STATIC_DIR = "static"
+STATIC_DIR = os.path.join(APP_DIR, "static")
 
 # Our favicon
 FAVICON_PATH = "/static/icons8-charged-battery.gif"

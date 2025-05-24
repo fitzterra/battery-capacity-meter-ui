@@ -24,7 +24,10 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 # cache won't be used for this or any following steps easily.
 # So, it's important to put this near the end of the Dockerfile, to optimize
 # the container image build times.
-COPY ./app /code/app
+COPY ./app/ /code/app/
+
+# Lastly we copy the VERSION file to the top level where it lives
+COPY ./VERSION /code/VERSION
 
 # Command to run the app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

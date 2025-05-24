@@ -31,12 +31,20 @@
       <td colspan=2 style="text-align: left">
         <details name="cleanup" style="border-bottom: 0">
           <summary>Clean Up</summary>
-          <form action="cleanup" method="post" hx-post="cleanup" hx-target="closest details">
+          <form
+              action="cleanup"
+              method="post" 
+              hx-post="cleanup"
+              hx-target="closest details"
+              data-confirm-title="Confirm Logs Deletion"
+              hx-confirm="All logs older than the given date will be deleted.
+                          <br>Are you sure you want to continue?"
+              data-confirm-ok="Delete"
+          >
             <input
               type="text"
               name="before_date"
               placeholder="yyy-mm-dd hh:mm:ss"
-              aria-label="CleanUp"
               pattern="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
               title="Please enter a valid timestamp in the format yyyy-mm-dd hh:mm:ss"
               required
