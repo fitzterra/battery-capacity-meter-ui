@@ -52,6 +52,13 @@
 ### --------Constants--------
 ME=$(basename $0)
 
+# Check to see if glab is available.
+if $(which glab >/dev/null 2>&1); then
+    HAS_GLAB=true
+else
+    HAS_GLAB=false
+fi
+
 # The current branch we're on.
 BRANCH=$(git branch --show-current)
 
@@ -266,6 +273,51 @@ function mainRelease () {
 }
 
 ###
+# Checks if glab is available and if so checks to see if we need to create an
+# MR, and creates one if the user accepts.
+###
+function checkMR () {
+    OK="\033[0;32m✔\033[0m"
+    NOK="\033[0;31m✖\033[0m"
+
+    # The MR functionality is only for the UAT branch
+    if [[ $BRANCH != 'UAT' ]]; then
+        return
+    fi
+
+    # We need to have glab cli available
+    if [[ $HAS_GLAB = 'false' && $SKIP_GLAB -ne 1 ]]; then
+        echo -e "\nTo auto manage MRs, try installing 'glab', the GitLab cli."
+        echo -e "See: https://gitlab.com/gitlab-org/cli\n"
+        exit 0
+    fi
+
+    # Check if there is already an MR for the release using the glab cli The
+    # output from the mr list command looks something like this (not exact):
+    #
+    #   !13  gaulnet/battery-capacity-meter-ui!13    Release Candidate  (main) ← (UAT)
+    #
+    # The !N at the start is the MR number. The "Release Candidate" is the
+    # title we assign when creating the MR, and then we also have the
+    # target and source branches. All these are used to find the correct
+    # MR.
+    HAS_MR=$(glab mr list --source-branch=UAT --target-branch=main 2>/dev/null | \
+             grep -E '^![0-9]+.*Release.*main.*UAT' | wc -l)
+    if [[ $HAS_MR -eq 1 ]]; then
+        echo -e "\n${OK} An MR to merge UAT into main already exists.\n"
+        exit 0
+    fi
+
+    if ! YesNo "Would you like to create an MR to merge this release into main?"; then
+        echo -e "\nOK, maybe next time.\n"
+        exit 0
+    fi
+
+    # Create the MR
+    glab mr create -t "Release Candidate" -d "Release" -s UAT --squash-before-merge -b main
+}
+
+###
 # Main runtime function
 ###
 function main () {
@@ -300,6 +352,10 @@ function main () {
 
     # Write the new release version, set the tag and push the repo.
     setRelease
+
+    # Check if we need to create and MR
+    checkMR
 }
 
 main
+
