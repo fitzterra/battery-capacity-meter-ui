@@ -14,15 +14,34 @@
     <tbody>
     {% for e in bat_events %}
       <tr>
-        <td>{{ e[0] }}</td>
-        <td>{{ e[2] }}</td>
+        <td>{{ e['event_time'] }}</td>
+        <td>{{ e['state'] }}</td>
         <td>
-        {% if e[3] %}
-        <a href='/events/measure/{{ bat_id }}/{{ e[3] }}/'>{{ e[3] }}</a>
+        {% if e['soc_uid'] %}
+        <a href="/events/measure/{{ bat_id }}/{{ e['soc_uid'] }}/">{{ e['soc_uid'] }}</a>
         {% endif %}
         </td>
-        <td>{{ e[4] }}</td>
-        <td>{{ e[5] }}</td>
+        <td>{{ e['soc_state'] }}</td>
+        <td>
+          {{ e['event_count'] }}
+          {% if e['event_count'] == 1 and e['soc_state'] == "Charging" %}
+          <!-- There are at times an additional stray "Charge" event at the end
+            of a measurement cycle. This throws the count of event groups out
+            for recording this as a battery measurement. Although we can not
+            pinpoint which these are exactly, we do know that they will have
+            only one event_count and the soc_state will be "Charging". For
+            these events we add this option to delete it, and allow the user to
+            make the decision, if any. -->
+          <a
+            href="del_extra/{{ e['id_start'] }}"
+            class='rec_delete'
+            hx-push-url="false"
+            data-confirm-title="Confirm Event Deletion"
+            hx-confirm="If you delete the wrong event here, the measurement can
+                        be made invalid.<br>Are you sure you want to continue?"
+          >✗</a>
+          {% endif %}
+        </td>
       </tr>
     {% endfor %}
     </tbody>
