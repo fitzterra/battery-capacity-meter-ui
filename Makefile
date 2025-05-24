@@ -7,7 +7,25 @@ DOCKERFILE=Dockerfile
 COMPOSE_FILE=docker-compose.yml
 # This should probably be in an env file and imported into the environment
 # both for here and also for the compose file.
-CONTAINER_NAME=soc-ui-dev
+CONTAINER_NAME=bat-cap-ui
+# This is the docker host on which we will deploy the application as a
+# container - this should best be set via .env, .env_local or as a variable
+# called LOC_DEPLOY_HOST in the repo's CI/CID variables section
+DEPLOY_HOST=
+# The user on DEPLOY_HOST to deploy as. Deployment will be done by ssh'ing into
+# DEPLOY_HOST as this user, so wherever the deployment is done from, the user
+# doing the deploymnet on the local machine needs his ssh pub key in the
+# authorized_keys of this user on DEPLOY_HOST - this should best be set via
+# .env, .env_local or as a variable called LOC_DEPLOY_USER in the repo's CI/CID
+# variables section
+DEPLOY_USER=
+# The name of the image to use when running as docker container
+DEPLOY_NAME=bat-cap-ui
+# This is a temp file used for creating the full runtime environment for the
+# remote deployment. It will be a combination of .env and .env_local and will
+# be SCPd to the deployment host where it will be used as the docker
+# environment for the app.
+MERGED_ENV=/tmp/$(DEPLOY_NAME).env
 
 ### These are for the doc generation using pydoctor
 # The html output path for the docs
@@ -17,7 +35,7 @@ APP_DOC_DIR=doc/app-docs
 DOC_IMG_LINK=$(APP_DOC_DIR)/img
 
 .PHONY: image dev-setup run stop version bump-major bump-minor bump-patch \
-	    docs dbshell repl rem-repl shell compose-conf show-env
+	    release docs dbshell repl rem-repl shell compose-conf show-env
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
@@ -55,6 +73,35 @@ image:
 	docker push $(REGISTRY)/$(IMAGE_NAME) --all-tags && \
 	echo "Pushed new version: $(VERSION)"
 
+# Deploy the image for the current version (from the VERSION) file to the
+# deploy host.
+# The deploy host only has SSH access and can run docker images.
+# Since our docker image needs it's full config to be supplied in the
+# environment when it is started, we have to supply the docker --env-file arg
+# pointing to a full environment file.
+# This environment file is make up from .env with .env_local overriding the
+# versioned .env default values (.env_local is not versioned)
+# We dynamically create the file by cat-ing .env and .env_local into one temp
+# file, copy this to the remote as a temp file, use that temp file as the
+# docker startup environment, and delete the temp environment once the
+# container is up.
+deploy:
+	@[[ -f .env && -f .env_local ]] || { echo ".env and .env_local is required"; exit 1; }
+	@echo "Merging .env and .env_local..."
+	@cat .env .env_local 2>/dev/null | grep -E '^[a-zA-Z0-9._]+=' > $(MERGED_ENV)
+	@echo "Deploying version $(VERSION) to $(DEPLOY_HOST)..."
+	@scp $(MERGED_ENV) $(DEPLOY_USER)@$(DEPLOY_HOST):$(MERGED_ENV)
+	@rm -f $(MERGED_ENV)
+	@ssh $(DEPLOY_USER)@$(DEPLOY_HOST) "\
+		docker pull $(REGISTRY)/$(IMAGE_NAME):$(VERSION) && \
+		docker stop $(DEPLOY_NAME) || true && \
+		docker rm $(DEPLOY_NAME) || true && \
+		docker run -d --name $(DEPLOY_NAME) --env-file $(MERGED_ENV) \
+			-p $(DEPLOY_PORT):$(APP_PORT) \
+			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) $(IMAGE) && \
+		rm -f $(MERGED_ENV) \
+		"
+
 # Set up the local development environment
 dev-setup:
 	pip install -r requirements-localdev.txt
@@ -89,6 +136,9 @@ bump-major:
 	@echo -n "New version: "
 	@cat VERSION
 
+# Creates a release
+release:
+	@./release_helper.sh
 
 # Ensure the doc/app-docs/img symlink exists and points to ../img
 doc-img-link:
@@ -103,26 +153,6 @@ doc-img-link:
 	else \
 		echo "Correct symlink already exists: $(DOC_IMG_LINK)"; \
 	fi
-
-# Make sure we have .env symlinked to dot.env-sample
-.env:
-	@if [ -L .env ]; then \
-		if [ "$$(readlink .env)" = "dot.env-sample" ]; then \
-			exit 0; \
-		else \
-			echo ".env exists but points somewhere else. Recreating symlink."; \
-			rm .env; \
-		fi; \
-	elif [ -e .env ]; then \
-		echo ".env exists but is not a symlink. Please fix manually."; \
-		exit 1; \
-	fi
-	@if [ ! -e dot.env-sample ]; then \
-		echo "Error: missing dot.env-sample, cannot create .env!"; \
-		exit 1; \
-	fi
-	@echo "Creating symlink: .env -> dot.env-sample"
-	ln -s dot.env-sample .env
 
 # Builds the docs using pydoctor. Requires the pydoctor python package to have
 # been installed, and also a fully configured pydoctor.ini or similar config

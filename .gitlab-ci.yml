@@ -1,19 +1,37 @@
-image: python:3.11
-
 stages:
   - docs
+  - build
+  - deploy
 
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-before_script:
-  - python -m pip install --upgrade pip
-  - pip install pydoctor
+# Anchor block that dynamically generates a .env_local file from all CI
+# variables prefixed with LOC_.
+# It will look for any environment variables prefixed with LOC_, strip the LOC_
+# prefix and write the remaining and the value to the .env_local file, which
+# will be imported by the Makefile when running any targets later. These LOC_
+# variables will normally be set in the repo CI/CD section as pipeline vars.
+# NOTE: currently the locally generate .env_local will be echod to stdout for
+# debugging, but this will reveal secrets, so make sure this OK, or remove the
+# `cat` line at the end.
+.env_local_gen: &env_local_gen
+  - >
+    echo "Generating .env_local from CI variables with LOC_ prefix..." &&
+    {
+      echo "# Auto-generated .env_local from CI/CD pipeline"
+      printenv | grep '^LOC_' | while IFS='=' read -r key val; do
+        stripped_key="${key#LOC_}"
+        printf '%s=%s\n' "$stripped_key" "$val"
+      done
+    } > .env_local
+  - cat .env_local
 
+
+# Documentation build and GitLab Pages publish job
 pages:
   stage: docs
   image: python:3.11
   before_script:
+    - python -m pip install --upgrade pip
     - pip install pydoctor
   script:
     - make docs
@@ -28,4 +46,58 @@ pages:
     paths:
       - public
 
+# Docker image build using Makefile and .env_local generation from LOC_ vars
+build-image:
+  stage: build
+  # We use the default docker build image for this that already has all the
+  # docker tools needed for building and pushing the image to the registry.
+  # This is based on Alpine.
+  image: docker:latest
+  services:
+    # This starts a Docker-in-Docker service which is the docker daemon that
+    # will be needed to do all the build and push work. This daemon is
+    # accessible as the DOCKER_HOST variable define below
+    - name: docker:dind
+      command: ["--insecure-registry=darwin:5000"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_TLS_CERTDIR: ""  # Disable TLS for Docker-in-Docker
+  before_script:
+    # The docker:lastest image is based on Alpine, so we use apk to add some
+    # more things we will need.
+    - apk add --no-cache bash coreutils make
+    # Insert the anchor block alias here to generate .env_local
+    - *env_local_gen
+  script:
+    - make image
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: always
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_rc\d+$/'
+      when: always
+
+deploy:
+  stage: deploy
+  image: docker:latest
+  before_script:
+    # The docker:lastest image is based on Alpine, so we use apk to add some
+    # more things we will need.
+    - apk add --no-cache bash coreutils make
+    # Insert the anchor block alias here to generate .env_local
+    - *env_local_gen
+    # SSH setup
+    - mkdir -p ~/.ssh
+    - cp "$DEPLOY_KEY_FILE" ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - cp "$DEPLOY_PUBKEY_FILE" ~/.ssh/id_rsa.pub
+    - chmod 644 ~/.ssh/id_rsa.pub
+    - ssh-keyscan -H $LOC_DEPLOY_HOST >> ~/.ssh/known_hosts
+    - cat /root/.ssh//known_hosts
+  script:
+    - make deploy
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: always
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+_deploy\d+$/'
+      when: always
 
