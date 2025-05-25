@@ -12,10 +12,10 @@
     align-items: center;
     gap: 1rem;
 
-    background-color: var(--primary);
+    background-color: var(--pico-primary);
     padding: 0.2rem 0.5rem 0.5rem;
     margin-top: 0.5rem;
-    border-radius: var(--border-radius);
+    border-radius: var(--pico-border-radius);
 }
 
 .header .logo {
@@ -28,6 +28,17 @@
     text-align: center;
     padding: 0;
     margin: 0;
+}
+
+/* Battery search input in header */
+.battery-search {
+	margin-bottom: 0 !important;
+	width: 9rem !important;
+	border-radius: var(--pico-border-radius) !important;
+	height: 1.8rem !important;
+	background-position: center left calc(var(--pico-form-element-spacing-horizontal) - 0.6rem) !important;
+	font-size: 0.8rem !important;
+	padding: 0 1rem 0 1.7rem !important;
 }
 
 /* Load spinner while waiting for the API call */
@@ -46,8 +57,8 @@
 .nav-menu {
     width: 12rem; /* Scalable width */
     padding: 1rem;
-    background-color: var(--secondary);
-    border-radius: var(--border-radius);
+    background-color: var(--pico-secondary-background);
+    border-radius: var(--pico-border-radius);
 }
 
 .nav-menu .title {
@@ -67,23 +78,23 @@
     display: block;
     padding: 0.5rem;
     text-decoration: none;
-    color: var(--primary-inverse);
-    background-color: var(--secondary-hover);
-    border-radius: var(--border-radius);
+    color: var(--pico-primary-inverse);
+    background-color: var(--pico-secondary-hover);
+    border-radius: var(--pico-border-radius);
     text-align: center;
 }
 
 .nav-menu ul li a:hover {
-    background-color: var(--primary);
+    background-color: var(--pico-primary);
 }
 
 /* Main Content */
 main {
     flex-grow: 1;
     padding: 1rem;
-    background-color: var(--background);
-    /* border-radius: var(--border-radius); */
-    border-left: solid 1px var(--primary-focus);
+    background-color: var(--pico-background);
+    /* border-radius: var(--pico-border-radius); */
+    border-left: solid 1px var(--pico-primary-focus);
     text-align: center;
     position: relative;
 }
@@ -100,24 +111,24 @@ main {
 
 /* Override table to make the spacing less large */
 table td, th {
-	padding: calc(var(--spacing)/ 10) var(--spacing);
+	padding: calc(var(--pico-spacing)/ 10) var(--pico-spacing);
 }
 
 /* Show that the row or cells in the row may be clickable */
 table tr.clickable,
 table tr:has(td.clickable) {
-    border-left: dashed var(--table-border-color) 0.125rem; /* 2px → 0.125rem */
+    border-left: dashed var(--pico-table-border-color) 0.125rem; /* 2px → 0.125rem */
 }
 
 table .clickable:hover {
-    background-color: var(--secondary-hover);
+    background-color: var(--pico-secondary-hover);
 }
 
 table caption {
     font-size: 1.5rem; /* 150% */
     font-weight: bolder;
-    border-radius: var(--border-radius);
-    background-color: var(--secondary);
+    border-radius: var(--pico-border-radius);
+    background-color: var(--pico-secondary-background);
     padding: 0.5rem; /* Added padding for better spacing */
 }
 
@@ -164,7 +175,7 @@ table caption {
 }
 
 .spinner .path {
-    stroke: var(--primary);
+    stroke: var(--pico-primary);
     stroke-linecap: round;
     animation: dash 1.5s ease-in-out infinite;
 }
@@ -194,7 +205,7 @@ table caption {
 article.err {
 	background-color: var(--pico-color-pink-850);
 	text-align: center;
-	border-radius: var(--border-radius);
+	border-radius: var(--pico-border-radius);
 }
 
 article.err header {
@@ -202,7 +213,7 @@ article.err header {
 	font-weight: bold;
 	padding: 0.2rem;
 	font-size: larger;
-	border-radius: var(--border-radius) var(--border-radius) 0% 0%;
+	border-radius: var(--pico-border-radius) var(--pico-border-radius) 0% 0%;
 	margin-bottom: 1rem;
 	border-bottom: 0px;
 }
@@ -211,7 +222,7 @@ article.err header {
 article.success {
 	background-color: var(--pico-color-green-850);
 	text-align: center;
-	border-radius: var(--border-radius);
+	border-radius: var(--pico-border-radius);
 }
 
 article.success header {
@@ -219,7 +230,7 @@ article.success header {
 	font-weight: bold;
 	padding: 0.2rem;
 	font-size: larger;
-	border-radius: var(--border-radius) var(--border-radius) 0% 0%;
+	border-radius: var(--pico-border-radius) var(--pico-border-radius) 0% 0%;
 	margin-bottom: 1rem;
 	border-bottom: 0px;
 }
@@ -261,7 +272,7 @@ canvas.battery-plot {
     height: auto;
     display: block;
 	background: var(--pico-color-slate-900);
-	border-radius: var(--border-radius);
+	border-radius: var(--pico-border-radius);
 	margin: 2rem 0;
 }
 
@@ -269,12 +280,10 @@ span.version {
 	font-size: small;
 	font-weight: bold;
 	display: inline-block;
-	border: 1px solid var(--secondary-inverse);
-	border-radius: var(--border-radius);
+	border: 1px solid var(--pico-secondary-inverse);
+	border-radius: var(--pico-border-radius);
 	padding: 0.1rem 0.3rem;
-	background: var(--secondary);
-	color: var(--primary-hover);
-}
+	color: var(--pico-secondary-inverse);
 
 table td,
 table th {
@@ -294,7 +303,7 @@ table td.logs-nav a.inactive {
   padding: 0.8rem;
   margin: 0 0 0.5rem;
   border: 1px solid var(--pico-color-red-400);
-  border-radius: var(--border-radius);
+  border-radius: var(--pico-border-radius);
   background-color: var(--pico-color-red-350);
   color: var(--pico-color-red-950);
   max-height: 0;
