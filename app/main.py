@@ -33,6 +33,7 @@ from .config import (
     MOUNT_APP_DOCS,
     STATIC_DIR,
     VERSION,
+    THEME_COLOR,
 )
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,23 @@ def errorResponse(msg):
     return response
 
 
+def _renderIndex(content: str = ""):
+    """
+    Wrapper to render the full index template with optional content.
+
+    Since we are passing certain context to the `index.html` template, it is
+    better to abstract rendering to one function instead of having to repeat
+    the context in all places we render `index.html`.
+
+    Args:
+        content: Any content to render in the content section
+    """
+
+    return Template("index.html").render(
+        content=content, version=VERSION, theme=THEME_COLOR
+    )
+
+
 @app.get("/")
 async def index(_):
     """
@@ -93,7 +111,7 @@ async def index(_):
 
     We simply render the index.html template
     """
-    return Template("index.html").render(content="", version=VERSION)
+    return _renderIndex()
 
 
 @app.get("/events/")
@@ -112,7 +130,7 @@ async def events(req):
 
     # This is not a direct HTMX request, so it must be an attempt to render the
     # full URL, so we render the full site including the part template.
-    return Template("index.html").render(content=content, version=VERSION)
+    return _renderIndex(content)
 
 
 @app.get("/events/del_dangling_events")
@@ -163,7 +181,7 @@ async def batEvents(req, bat_id):
 
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
-    return Template("index.html").render(content=content, version=VERSION)
+    return _renderIndex(content)
 
 
 @app.get("events/bat_id/<bat_id>/del_events")
@@ -250,7 +268,7 @@ async def uidEvents(req, bat_id, uid):
 
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
-    return Template("index.html").render(content=content, version=VERSION)
+    return _renderIndex(content)
 
 
 @app.get("events/measure/<bat_id>/<uid>/set_history")
@@ -317,10 +335,28 @@ async def delUIDEvents(req, bat_id, uid):
 @app.get("/bat/")
 async def batteries(req):
     """
-    Generates the list of known batteries paqe....
-    """
+    Generates a battery list view.
 
-    bats = getKnownBatteries()
+    All known batteries will be included ordered by battery ID.
+
+    Searching for only specific battery IDs is possibly by adding a 'search'
+    query parameter:
+
+        /bat/?search=1234
+
+    If a search string is included, only battery entries where the search
+    string is found anywhere in the battery id will be included in the list
+    view.
+    """
+    # Is there a search string? Default to None
+    search = None
+    if "search" in req.args:
+        # The args part is a MultiDict, but it seems that if the value is one
+        # element only, then it will be returned not as a list, but as the only
+        # element in the list.
+        search = req.args["search"]
+
+    bats = getKnownBatteries(search=search)
 
     content = Template("batteries.html").render(bats=bats)
 
@@ -331,7 +367,7 @@ async def batteries(req):
 
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
-    return Template("index.html").render(content=content, version=VERSION)
+    return _renderIndex(content)
 
 
 @app.get("/bat/<bat_id>/")
@@ -361,7 +397,7 @@ async def batHistory(req, bat_id):
 
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
-    return Template("index.html").render(content=content, version=VERSION)
+    return _renderIndex(content)
 
 
 @app.get("/bat/<bat_id>/<uid>/")
@@ -392,7 +428,7 @@ async def batMeasureUID(req, bat_id, uid):
 
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
-    return Template("index.html").render(content=content, version=VERSION)
+    return _renderIndex(content)
 
 
 @app.get("/bat/<bat_id>/<uid>/plot/<plot_ind>")
@@ -424,7 +460,7 @@ async def viewLogs(req):
 
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
-    return Template("index.html").render(content=content, version=VERSION)
+    return _renderIndex(content)
 
 
 @app.route("/logs/cleanup", methods=["POST"])
