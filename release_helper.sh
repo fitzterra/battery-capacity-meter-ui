@@ -197,6 +197,24 @@ function setRelease () {
 # It also confirms the new version for release
 ###
 function UATRelease () {
+    # First thing we do is check if there are any changes on main that still
+    # needs to be merged into UAT. This will normally be needed after a
+    # production deployment. We use git log to see any commits that have been
+    # made on main, but not merged into UAT yet. We can not just use 
+    # git diff UAT main because it will falsy trigger an any changes that may
+    # have been made on UAT too, and we're only interested in changes on main.
+    echo "Checking for changes in 'main'..."
+    # Fetch latest info about 'main' from remote if available
+    git fetch origin main >/dev/null 2>&1
+    # Fetch all commits onto main that was not in UAT
+    MAIN_CHANGES=$(git log --oneline origin/main --not UAT)
+    if [[ -n $MAIN_CHANGES ]]; then
+        echo "⚠ The following commits on 'main' have not been merged into 'UAT' yet:"
+        echo "$MAIN_CHANGES"
+        echo -e "\nPlease merge 'main' into 'UAT' before continuing.\n"
+        exit 1
+    fi
+
     echo -e "\nCreating a release candidate version in UAT, from current version: $VERSION."
 
     # If there is no RC, then this must a fresh merge from main. We need to

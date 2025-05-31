@@ -1,13 +1,14 @@
 # Make sure we use bash as the shell.
 SHELL := /usr/bin/env bash
 
-REGISTRY=darwin:5000
-IMAGE_NAME=bat-cap-ui
-DOCKERFILE=Dockerfile
-COMPOSE_FILE=docker-compose.yml
-# This should probably be in an env file and imported into the environment
-# both for here and also for the compose file.
-CONTAINER_NAME=bat-cap-ui
+# All these variables needs to be set from the .env and or .env_local files
+# that are imported below. We just set them as empty values here for
+# documentation and for "declaring" everything that is needed.
+#
+# The docker image registry
+REGISTRY=
+IMAGE_NAME=
+CONTAINER_NAME=
 # This is the docker host on which we will deploy the application as a
 # container - this should best be set via .env, .env_local or as a variable
 # called LOC_DEPLOY_HOST in the repo's CI/CID variables section
@@ -20,7 +21,7 @@ DEPLOY_HOST=
 # variables section
 DEPLOY_USER=
 # The name of the image to use when running as docker container
-DEPLOY_NAME=bat-cap-ui
+DEPLOY_NAME=
 # This is a temp file used for creating the full runtime environment for the
 # remote deployment. It will be a combination of .env and .env_local and will
 # be SCPd to the deployment host where it will be used as the docker
@@ -34,8 +35,8 @@ APP_DOC_DIR=doc/app-docs
 # `img` dir in the man `doc` dir.
 DOC_IMG_LINK=$(APP_DOC_DIR)/img
 
-.PHONY: image dev-setup run stop version bump-major bump-minor bump-patch \
-	    release docs dbshell repl rem-repl shell compose-conf show-env
+.PHONY: help image dev-setup run stop version bump-major bump-minor bump-patch \
+	    release docs dbshell repl rem-repl shell compose-conf show-env docker-prune
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
@@ -50,6 +51,44 @@ include .env
 # Make sure all the vars we included from the env files are available to any
 # recipes we run
 export
+
+# A help message ALA heredoc style for makefiles. It depends on the GNU make
+# and it multiline variables. See: https://unix.stackexchange.com/a/516476
+define help_msg =
+
+The following make targets are available:
+
+dev-setup     - Set up the local development environment by installing requirements etc.
+compose-conf  - Shows the full docker compose config
+run           - Start the container in the foreground
+stop          - Stop any running containers
+version       - Show the current app version (from VERSION file)
+dbshell       - Connects to the DB using pgcli using DB_??? env vars for config info
+repl          - Starts a local ipython REPL with the environment set up from .env .env_local
+rem-repl      - Starts REPL in container after installing ipython if not already installed
+shell         - Runs bash inside the container
+show-env      - Shows the full environment the Makefile sees
+bump-major    - Increases the major version in the VERSION file
+bump-minor    - Increases the minor version in the VERSION file
+bump-patch    - Increases the patch version in the VERSION file
+docs          - Builds the documentation via pydoctor.
+image         - Build and push Docker image with versioned tags
+release       - Creates a release. In UAT creates an RC release, and a prod release in main.
+docker-prune  - Deletes all stopped containers to reclaim space. Will ask for confirmation.
+help          - Show this help message.
+
+endef
+
+# Show the help_msg defined above. To break this down for those not 100%
+# familiar with Makefile Syntax:
+# * The ; after help: allows you to define the recipe inline on the same line.
+# * @ suppresses echoing the command before execution (as usual in Make).
+# * $(info ...) is a Make built-in function. It is evaluated by Make itself,
+#   not by the shell. It prints the message to stdout at parse time, not run time.
+# * The : at the end does nothing in the shell — it is a shell built-in no-op.
+#   It's just there to ensure the line has a command that returns true.
+help:; @ $(info $(help_msg)) :
+
 
 # Function to increment the major, minor or patch part of the version in the
 # VERSION file.
@@ -101,6 +140,10 @@ deploy:
 			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) $(IMAGE) && \
 		rm -f $(MERGED_ENV) \
 		"
+
+# Removes all old stopped containers to reclaim space
+docker-prune:
+	docker container prune
 
 # Set up the local development environment
 dev-setup:
@@ -205,5 +248,6 @@ shell:
 compose-conf:
 	@docker-compose config
 
+## Shows the full environment the Makefile sees
 show-env:
 	@env
