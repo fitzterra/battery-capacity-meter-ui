@@ -396,7 +396,9 @@ def delExtraSoCEvent(bat_id: str, soc_id: str | int) -> dict:
     return res
 
 
-def getKnownBatteries(raw_dates: bool = False) -> Iterable[dict]:
+def getKnownBatteries(
+    raw_dates: bool = False, search: str | None = None
+) -> Iterable[dict]:
     """
     Generator that returns all known batteries from the `Battery` table.
 
@@ -404,12 +406,19 @@ def getKnownBatteries(raw_dates: bool = False) -> Iterable[dict]:
         raw_dates: If True, dates will be returned as datetime or date objects.
             If False (the default) dates will be be returned as "YYYY-MM-DD
             HH:MM:SS" (datetimes) or "YYYY-MM-DD" (date only) strings.
+        search: If supplied, it must be a string that will be used as a LIKE
+            SQL search on the battery ID. Only entries where this search match
+            will be returned. May be an empty list.
 
     Yields:
         Each entry as a dictionary representation of a `Battery` entry.
     """
     with db.connection_context():
         query = Battery.select().order_by(Battery.bat_id)
+
+        # Any search criteria?
+        if search:
+            query = query.where(Battery.bat_id % f"%{search}%")
 
         # Return the results, but convert any datetime type elements in the result
         # to date/time strings if raw_dates is false

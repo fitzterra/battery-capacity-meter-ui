@@ -1,4 +1,4 @@
-{% args content, version %}
+{% args content, version, theme=None %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -7,7 +7,9 @@
     <meta name="color-scheme" content="light dark">
 
     <!-- Include Pico.css -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.{{ theme + "." if theme else "" }}min.css"
+    >
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css" >
     <link rel="stylesheet" href="/styles.css">
 
@@ -41,6 +43,14 @@
       <h1>
         Battery Capacity Meter
       </h1>
+      <form action="/bat/" method="get">
+        <input
+          class="battery-search"
+          type="search"
+          name="search"
+          placeholder="bat id or part"
+        >
+      </form>
       <span class="version">v{{ version }}</span>
     </header>
 

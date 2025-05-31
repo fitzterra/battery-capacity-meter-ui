@@ -99,6 +99,29 @@ STATIC_DIR = os.path.join(APP_DIR, "static")
 # Our favicon
 FAVICON_PATH = "/static/icons8-charged-battery.gif"
 
+# The theme color - see https://picocss.com/docs/version-picker
+# THEME_COLOR = "red"
+# THEME_COLOR = "pink"
+# THEME_COLOR = "fuchsia"
+# THEME_COLOR = "purple"
+# THEME_COLOR = "violet"
+# THEME_COLOR = "indigo"
+# THEME_COLOR = "blue"
+# THEME_COLOR = ""  # Default blue
+# THEME_COLOR = "cyan"
+# THEME_COLOR = "jade"
+# THEME_COLOR = "green"
+# THEME_COLOR = "lime"
+# THEME_COLOR = "yellow"
+# THEME_COLOR = "amber"
+THEME_COLOR = "pumpkin"
+# THEME_COLOR = "orange"
+# THEME_COLOR = "sand"
+# THEME_COLOR = "grey"
+# THEME_COLOR = "zinc"
+# THEME_COLOR = "slate"
+
+
 # Pick up the app version from the VERSION file in the top level dir
 try:
     with open("VERSION", "r", encoding="utf-8") as f:

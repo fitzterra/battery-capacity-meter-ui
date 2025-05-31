@@ -2,10 +2,10 @@
 # setup.
 services:
   soc-ui-dev:
-    image: darwin:5000/bat-cap-ui:latest
-    container_name: soc-ui-dev
+    image: ${REGISTRY}/${IMAGE_NAME}:latest
+    container_name: ${DEPLOY_NAME}
     ports:
-      - "8000:8000"
+      - "${APP_PORT}:${APP_PORT}"
     volumes:
       - .:/code
     restart: unless-stopped
