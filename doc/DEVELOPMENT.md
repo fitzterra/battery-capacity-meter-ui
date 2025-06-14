@@ -7,6 +7,9 @@ How to develop on this project
 2. [Development workflow](#development-workflow)
 3. [Development environment](#development-environment)
 4. [Version management](#version-management)
+	1. [Basic Flow](#basic-flow)
+5. [Migrations](#migrations)
+	1. [Testing your migrations](#testing-your-migrations)
 
 **Import**: Using the `make` commands
 ---------------------------------
@@ -110,3 +113,72 @@ Version management
     * The Gitlab deploy pipeline will now be triggered to build and deploy this
         release.
 * Go to the top
+
+Migrations
+----------
+
+DB migrations are managed by creating a migration file for the release version
+in which this migration needs to be applied. On deployment, the migration for
+the given release will then be run.
+
+At the top level repo the following are the migration handling files and dirs:
+
+    .
+    ├── migrate.py
+    └── migrations
+        ├── __init__.py
+        └── v0.10.0
+            ├── __init__.py
+            └── migrate.py
+
+To create a migration for a specific version add Python "package" dir for the
+version under the `migrations` dir, using the version format as in the example.
+
+The `__init__.py` can be empty, but the `migrate.py` file is expected to be
+there with the main migration entry point function called `run()`.
+
+The signature and sample `run` function should look like this:
+
+```python
+def run(logger, dry_run: bool = True):
+    """
+    Main entry point to be called from the migration manager
+
+
+    Args:
+        logger: A logging instance to use for local logging.
+        dry_run: True if in dry-run mode, False otherwise.
+    """
+```
+When running migrations (`make deploy` or with `make test-migration`, the flow
+is as follows:
+
+* The `./migrate.py` script is executed
+* Using the `VERSION` value available in the environment or read from the
+    `VERSION` file, if checks to see if there is a migration package for this
+    version in `migrations`.
+* If found, it imports `migrate` from the package and executes the `run`
+    function, passing in a logger instance and the `dry_run` flag.
+* The migration script then needs to do whatever it needs to, log as musch
+    detail using the logger, and respect the `dry_run` flag to not make
+    permanent changes when set.
+
+### Testing your migrations
+
+To test that your migration will work correctly, follow this flow:
+
+* Backup your current UAT DB: `make db-snapshot-uat`
+* Clone the prod DB: `make db-clone-uat` - **NOTE** this can only be done with
+    no open session to either DB
+* Make sure you have the docker dev instance running in another terminal: `make run`
+* Test the migration: `make test-migration` - this does the following:
+    * Drops any `_RC?` part from the version - this assumes you are on an RC
+        release ready for the next prod version, and that the migration package
+        dir is for thie version.
+    * Runs the `migrate.py` script in the current running container.
+    * This will default to a dry run, and no migrations should succeed.
+    * Now run it again with dry run off: `make test-migration DRY_RUN=0`
+* When done, you can now restore your previous UAT DB with:
+    * `make db-restore-uat`
+    * `make db-drop-snapshot`
+

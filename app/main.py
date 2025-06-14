@@ -1,5 +1,12 @@
 """
 Main application entry point.
+
+Attributes:
+
+    app: The Microdot_ application instance.
+    logger: THe module level logger
+
+.. _Microdot: https://microdot.readthedocs.io/en/latest/index.html
 """
 
 import os
@@ -7,7 +14,8 @@ import logging
 import re
 from datetime import datetime
 
-from microdot.asgi import Microdot, Response, redirect, send_file
+from microdot.asgi import Microdot, Response, Request, redirect, send_file
+from microdot.multipart import with_form_data
 from microdot.utemplate import Template
 from app.api.docs import app as docs_app
 from app.models.data import (
@@ -17,6 +25,9 @@ from app.models.data import (
     delBatUIDEvents,
     delExtraSoCEvent,
     getBatUnallocSummary,
+    getBatteryImage,
+    setBatteryImage,
+    delBatteryImage,
     getBatteryDetails,
     getKnownBatteries,
     getBatteryHistory,
@@ -34,7 +45,13 @@ from .config import (
     STATIC_DIR,
     VERSION,
     THEME_COLOR,
+    BAT_IMG_MAX_SZ,
 )
+
+# We need to allow for battery images to be uploaded larger than the defaulty
+# Microdot content size, so we set the default here.
+# See also the batImageSet handler.
+Request.max_content_length = int(BAT_IMG_MAX_SZ * 5.5)
 
 logger = logging.getLogger(__name__)
 
@@ -91,16 +108,19 @@ def _renderIndex(content: str = ""):
     """
     Wrapper to render the full index template with optional content.
 
-    Since we are passing certain context to the `index.html` template, it is
+    Since we are passing certain context to the ``index.html`` template, it is
     better to abstract rendering to one function instead of having to repeat
-    the context in all places we render `index.html`.
+    the context in all places we render ``index.html``.
 
     Args:
         content: Any content to render in the content section
     """
 
     return Template("index.html").render(
-        content=content, version=VERSION, theme=THEME_COLOR
+        content=content,
+        version=VERSION,
+        bat_img_max_sz=BAT_IMG_MAX_SZ,
+        theme=THEME_COLOR,
     )
 
 
@@ -233,7 +253,7 @@ async def delExtraEvent(req, bat_id, soc_id):
     Args:
         req: Microdot request object
         bat_id: The battery ID
-        soc_id: The `SocEvent` ID that needs to be deleted.
+        soc_id: The `SoCEvent` ID that needs to be deleted.
     """
     # If this did not come in via htmx request, we redirect to the base URL so
     # that we can be sure to always get here from an HTMX get
@@ -400,6 +420,134 @@ async def batHistory(req, bat_id):
     return _renderIndex(content)
 
 
+@app.route("/bat/<bat_id>/img", methods=["GET", "DELETE"])
+async def batImageGetDel(req, bat_id):
+    """
+    API endpoint handler to get or delete a battery image.
+
+    * **URL**:      /bat/<bat_id>/img
+    * **Methods**: GET, DELETE
+
+    If the HTTP method is *GET*, we return the battery image if available,
+    including the correct Content-Type.
+
+    If the method is *DELETE*, we delete the image if the battery ID is valid,
+    and return success (200).
+
+    The reason this method handles *GET* and *DELETE* is because the *POST* and
+    *PUT* methods are form handlers and needs the additional ``@with_form_data``
+    decorator.
+
+    See:
+        `batImageSet`
+
+    Args:
+        req: The ``microdot.request`` instance.
+        bat_id: The battery ID as picked from the path
+
+    Returns:
+        200 on Success.
+        For *GET*, the image data is returned.
+    """
+    logger.info("Request to %s image for battery %s", req.method, bat_id)
+
+    if req.method == "GET":
+        res = getBatteryImage(bat_id)
+        # If the result is a string then this is an error.
+        if isinstance(res, str):
+            return res, 404
+        # It must be a BatteryImage instance, return the image with the correct
+        # content type set.
+        return Response(body=res.image, headers={"Content-Type": res.mime})
+
+    # This must be a DELETE
+    res = delBatteryImage(bat_id)
+    if res is not True:
+        return res, 400
+
+    return "Image deleted", 200
+
+
+@app.route("/bat/<bat_id>/img", methods=["POST", "PUT"])
+@with_form_data
+async def batImageSet(req, bat_id):
+    """
+    API endpoint handler to add or update a battery image.
+
+    * **URL**:      /bat/<bat_id>/img
+    * **Methods**: POST, PUT
+
+    This is expected to be a `multipart/form-data`_ *POST* or *PUT* with a
+    field named ``image`` as the form part of the image data. This part also
+    needs the correct mime type for image to be set in the *Content-Type*
+    header for the image part.
+
+    The file field should be named "image" and MUST have a Content-Type
+    included.
+
+    For both HTTP methods a new image will be added if one does not exist yet,
+    or replaced if one already exists.
+
+    Calls `setBatteryImage` to update the `BatteryImage` record.
+
+    See:
+        `batImageGetDel`
+
+    Args:
+        req: The ``microdot.request`` instance.
+        bat_id: The battery ID as picked from the path
+
+    Returns:
+        200 if the image was updated.
+        201 if the image was created as new.
+        400 on invalid battery ID or no image field
+        415 if no image content type or not an image type
+        413 if the image size is too large
+        500 if there was an issue saving the image
+
+    .. _multipart/form-data: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/MIME_types#multipartform-data
+
+    """
+    logger.info("Doing a battery image update for bat with ID %s...", bat_id)
+
+    # Get the image part as a file in the request
+    img = req.files.get("image")
+    if img is None:
+        return "image part missing", 400
+
+    # Get the content type from the upload file part as out mime type. We
+    # require it to be and image type, or else we exit wit a 415
+    mime = getattr(img, "content_type", None)
+    if not mime or not mime.startswith("image/"):
+        msg = f"Content-Type missing or not an image. Mime: {mime}"
+        logging.error(msg)
+        return msg, 415
+
+    # We allow a tolerance of 5% larger for the image
+    # NOTE: If the image is larger than the Request.max_content_length we set
+    # at the top of this module, we will not even get here.
+    max_size = int(BAT_IMG_MAX_SZ * 1.05)
+
+    img_dat = await img.read(n=max_size + 1)
+
+    if len(img_dat) >= max_size:
+        # Too large
+        msg = f"File too large: {len(img_dat)}. Max allowed {BAT_IMG_MAX_SZ}b (+5%)"
+        logger.error(msg)
+        return msg, 413
+
+    res = setBatteryImage(bat_id, img_dat, mime)
+    if not res["success"]:
+        if res["not_found"]:
+            return res["err"], 400
+        return res["err"], 500
+
+    if res["new"]:
+        return "New image set", 201
+
+    return "Image updated", 200
+
+
 @app.get("/bat/<bat_id>/<uid>/")
 async def batMeasureUID(req, bat_id, uid):
     """
@@ -522,7 +670,14 @@ async def static(_, path):
     f_path = f"{STATIC_DIR}/{path}"
     if not os.path.exists(f_path) or os.path.isdir(f_path):
         return "Not found", 404
-    return send_file(f_path, max_age=86400)
+
+    # Try to set the content type for specific files, and leave send_file to
+    # figure it out otherwise
+    content_type = None
+    if path.endswith(".svg"):
+        content_type = "image/svg+xml"
+
+    return send_file(f_path, content_type=content_type, max_age=86400)
 
 
 logging.debug("App starting...")
