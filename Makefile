@@ -35,8 +35,8 @@ APP_DOC_DIR=doc/app-docs
 # `img` dir in the man `doc` dir.
 DOC_IMG_LINK=$(APP_DOC_DIR)/img
 
-.PHONY: help image dev-setup run stop version bump-major bump-minor bump-patch \
-	    release docs dbshell repl rem-repl shell compose-conf show-env docker-prune
+.PHONY: help image dev-setup run stop version release docs dbshell repl \
+	    rem-repl shell compose-conf show-env docker-prune
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
@@ -68,9 +68,6 @@ repl          - Starts a local ipython REPL with the environment set up from .en
 rem-repl      - Starts REPL in container after installing ipython if not already installed
 shell         - Runs bash inside the container
 show-env      - Shows the full environment the Makefile sees
-bump-major    - Increases the major version in the VERSION file
-bump-minor    - Increases the minor version in the VERSION file
-bump-patch    - Increases the patch version in the VERSION file
 docs          - Builds the documentation via pydoctor.
 image         - Build and push Docker image with versioned tags
 release       - Creates a release. In UAT creates an RC release, and a prod release in main.
@@ -159,24 +156,6 @@ stop:
 
 # Print current version
 version:
-	@cat VERSION
-
-# Manually bump patch part in version
-bump-patch:
-	@$(call bump_version,3)
-	@echo -n "New version: "
-	@cat VERSION
-
-# Manually bump minor part in version
-bump-minor:
-	@$(call bump_version,2)
-	@echo -n "New version: "
-	@cat VERSION
-
-# Manually bump major part in version
-bump-major:
-	@$(call bump_version,1)
-	@echo -n "New version: "
 	@cat VERSION
 
 # Creates a release
