@@ -35,19 +35,40 @@ APP_DOC_DIR=doc/app-docs
 # `img` dir in the man `doc` dir.
 DOC_IMG_LINK=$(APP_DOC_DIR)/img
 
-.PHONY: help image dev-setup run stop version bump-major bump-minor bump-patch \
-	    release docs dbshell repl rem-repl shell compose-conf show-env docker-prune
+.PHONY: \
+	help \
+	dev-setup \
+	image \
+	deploy \
+	test-migration \
+	docker-prune \
+	run \
+	stop \
+	version \
+	release \
+	docs \
+	dbshell \
+	db-clone-uat \
+	db-drop-uat-snapshot \
+	db-snapshot-uat \
+	db-restore-uat \
+	repl \
+	rem-repl \
+	shell \
+	compose-conf \
+	show-env \
+
 
 # Get the current version from the VERSION file
 VERSION := $(shell cat VERSION)
 
-# Set up a known environment - we have the .env file target that will make the
-# .env symlink if needed.
+# Set up a known environment from the .env file
 include .env
 
 # Also include any local environment variables if .env_local exists
 -include .env_local
 
+include db-scripts.mk
 # Make sure all the vars we included from the env files are available to any
 # recipes we run
 export
@@ -63,16 +84,24 @@ compose-conf  - Shows the full docker compose config
 run           - Start the container in the foreground
 stop          - Stop any running containers
 version       - Show the current app version (from VERSION file)
-dbshell       - Connects to the DB using pgcli using DB_??? env vars for config info
+dbshell       - Connects to the DB using pgcli : psql://${DB_USER}@${DB_HOST}/${DB_NAME}
+db-clone-uat  - Clones $(DB_NAME) to $(DB_NAME_UAT) on $(DB_HOST).
+                You need SSH access to $(DB_HOST) and full DB admin rights there.
+db-snapshot-uat
+              - Creates a snapshot of $(DB_NAME_UAT) DB as $(DB_NAME_UAT)_ss
+db-restore-uat
+              - Restores a previous $(DB_NAME_UAT)_ss snapshot DB to $(DB_NAME_UAT).
+db-drop-uat-snashot
+              - Drops the $(DB_NAME_UAT)_ss snapshot DB created before if it exists.
 repl          - Starts a local ipython REPL with the environment set up from .env .env_local
 rem-repl      - Starts REPL in container after installing ipython if not already installed
 shell         - Runs bash inside the container
 show-env      - Shows the full environment the Makefile sees
-bump-major    - Increases the major version in the VERSION file
-bump-minor    - Increases the minor version in the VERSION file
-bump-patch    - Increases the patch version in the VERSION file
 docs          - Builds the documentation via pydoctor.
 image         - Build and push Docker image with versioned tags
+test-migration- Tests that the migration created for the next prod deployment works on the UAT DB.
+                Normal flow is to snapshot UAT, clone UAT from prod, test migration, restore UAT.
+deploy        - Deploys the latest release to production. Meant to be run from GL CI Pipeline.
 release       - Creates a release. In UAT creates an RC release, and a prod release in main.
 docker-prune  - Deletes all stopped containers to reclaim space. Will ask for confirmation.
 help          - Show this help message.
@@ -89,22 +118,9 @@ endef
 #   It's just there to ensure the line has a command that returns true.
 help:; @ $(info $(help_msg)) :
 
-
-# Function to increment the major, minor or patch part of the version in the
-# VERSION file.
-# Call it with: $(call bump_version,1) 
-# where the argument after the name is either 1, 2, or 3 depending on if the
-# major, minor or patch part respectively needs to be updated.
-# The arg we get in will be in $(1) which is expanded to the field number after
-# splitting the version string on '.' to get the 3 version parts.
-# If 3 is passed as the field arg, all the $$$ then evaluates to:
-#   $$3   - after first expansion
-# The extra $ is to prevent make from trying to expand that, and will pass that
-# part to awk as '$3' which it will take as the field number to increment.
-define bump_version
-	awk -F. 'BEGIN {OFS="."} {$$$(1)+=1; print $$0}' VERSION > VERSION.tmp && mv VERSION.tmp VERSION
-endef
-
+# Set up the local development environment
+dev-setup:
+	pip install -r requirements-localdev.txt
 
 # Build and push Docker image with versioned tags
 image:
@@ -120,9 +136,12 @@ image:
 # pointing to a full environment file.
 # This environment file is make up from .env with .env_local overriding the
 # versioned .env default values (.env_local is not versioned)
-# We dynamically create the file by cat-ing .env and .env_local into one temp
-# file, copy this to the remote as a temp file, use that temp file as the
-# docker startup environment, and delete the temp environment once the
+# For deployment, .env_local will be created by the GitLab CI pipeline from all
+# LOC_??? variables defined as CI Variables. See .env_local_gen in
+# .gitlab-ci.yml
+# We dynamically create the MERGED_ENV file by cat-ing .env and .env_local into
+# one temp file, copy this to the remote as a temp file, use that temp file as
+# the docker startup environment, and delete the temp environment once the
 # container is up.
 deploy:
 	@[[ -f .env && -f .env_local ]] || { echo ".env and .env_local is required"; exit 1; }
@@ -135,19 +154,36 @@ deploy:
 		docker pull $(REGISTRY)/$(IMAGE_NAME):$(VERSION) && \
 		docker stop $(DEPLOY_NAME) || true && \
 		docker rm $(DEPLOY_NAME) || true && \
+		docker run --rm --env-file $(MERGED_ENV) \
+			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) \
+			python migrate.py && \
 		docker run -d --name $(DEPLOY_NAME) --env-file $(MERGED_ENV) \
 			-p $(DEPLOY_PORT):$(APP_PORT) \
 			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) $(IMAGE) && \
 		rm -f $(MERGED_ENV) \
 		"
+# Tests the production migration script.
+# The flow should be something line this:
+# $ make db-snapshot-uat      # Make a snapshot of UAT if needed
+# $ make db-clone-uat         # Clone prod to UAT to have a db migration test
+# $ make test-migration       # Run this test
+# $ make db-restore-uat       # Return to the previous UAT snapshot
+# $ make db-drop-uat-snapshot # Drop the snapshot again
+#
+# The migrations will by default be run for the non RC version, i.e. it strips
+# _RC?? from VERSION and forces the migrations to run for that version.
+# The default is to run in DRY-RUN mode. To not run dry run, pass DRY_RUN=0 at
+# the end of the make command.
+test-migration:
+	docker exec -ti $(CONTAINER_NAME) env VERSION=$${VERSION%_*} DRY_RUN=$${DRY_RUN:-1} ./migrate.py
+	@if [[ -z $$DRY_RUN ]]; then \
+		echo -e "\nDry run is the default. To disable, run:\n    make test-migration DRY_RUN=0\n"; \
+	 fi
 
+	
 # Removes all old stopped containers to reclaim space
 docker-prune:
 	docker container prune
-
-# Set up the local development environment
-dev-setup:
-	pip install -r requirements-localdev.txt
 
 # Start the container in the foreground
 run:
@@ -159,24 +195,6 @@ stop:
 
 # Print current version
 version:
-	@cat VERSION
-
-# Manually bump patch part in version
-bump-patch:
-	@$(call bump_version,3)
-	@echo -n "New version: "
-	@cat VERSION
-
-# Manually bump minor part in version
-bump-minor:
-	@$(call bump_version,2)
-	@echo -n "New version: "
-	@cat VERSION
-
-# Manually bump major part in version
-bump-major:
-	@$(call bump_version,1)
-	@echo -n "New version: "
 	@cat VERSION
 
 # Creates a release
@@ -226,6 +244,26 @@ docs: doc-img-link
 dbshell:
 	@# Source .env and then connect with pgcli
 	@pgcli postgres://$${DB_USER}:$${DB_PASS}@$${DB_HOST}/$${DB_NAME}
+
+# Clones the production DB to the UAT DB using the DB_NAME_UAT and DB_NAME_PROD
+# names.
+# The DB_SCRIPT_UAT_CLONE script is defined in db-scripts.mk
+db-clone-uat:
+	@echo "$$DB_SCRIPT_UAT_CLONE" | ssh $(DB_HOST) 'bash -s'
+
+# Creates a snapshot from the UAT DB as named by DB_NAME_UAT.
+# The snapshot DB name will be the UAT dn name with `_ss` appended.
+# The DB_SCRIPT_SNAPSHOT_UAT script is defined in db-scripts.mk
+db-snapshot-uat:
+	@echo "$$DB_SCRIPT_SNAPSHOT_UAT" | ssh $(DB_HOST) 'bash -s'
+
+# Restores the UAT DB from a previous snapshot
+db-restore-uat:
+	@echo "$$DB_SCRIPT_RESTORE_UAT" | ssh $(DB_HOST) 'bash -s'
+
+# Drops the UAT snapshot DB if it exists.
+db-drop-uat-snapshot:
+	@echo "$$DB_SCRIPT_DROP_UAT_SNAPSHOT" | ssh $(DB_HOST) 'bash -s'
 
 # Starts a local ipython REPL with the environment set up from .env end
 # optionally .env_local as included and then exported above.

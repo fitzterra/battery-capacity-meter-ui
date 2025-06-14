@@ -31,6 +31,7 @@ from peewee import (
     DateTimeField,
     DateField,
     FloatField,
+    BlobField,
     AutoField,
     DatabaseError,
     fn,
@@ -145,6 +146,48 @@ class Battery(BaseModel):
         if not self._pk:  # Only set modified if updating, not on insert
             self.modified = datetime.now()
         return super().save(*args, **kwargs)
+
+
+class BatteryImage(BaseModel):
+    """
+    A one-to-one table to the `Battery` model to allow storing a small battery
+    image for each `Battery` entry.
+
+    Although we will not allow large images to be stored, we still make this a
+    separate table to make queries quicker.
+
+    Attributes:
+        battery: The FK to the `Battery` table id, but also the primary key on
+            this table since there is a one-to-one relationship between the
+            tables.
+        image: The raw image data. This will be a ``BYTEA`` field in the PG
+            table.
+        mime: The mime type for the image data. This can directly be used as
+            the ``content-type`` in an HTTP response. Default to ``image/jpeg``
+            since JPG images are generally smaller than other types.
+        size: The image data size in bytes
+        width: The image width in pixels
+        height: The image height in pixels
+    """
+
+    # We make the Battery.id a FK, but also make it the primary for this table
+    # since we are doing one-to-one links here.
+    battery = ForeignKeyField(Battery, backref="images", primary_key=True)
+    image = BlobField(null=False)
+    mime = TextField(null=False, default="image/jpeg")
+    size = IntegerField(null=False)
+    width = SmallIntegerField(null=False)
+    height = SmallIntegerField(null=False)
+
+    class Meta:
+        """
+        Model config.
+
+        Attributes:
+            table_name: Name of the table in the database.
+        """
+
+        table_name = "battery_image"
 
 
 class BatCapHistory(BaseModel):

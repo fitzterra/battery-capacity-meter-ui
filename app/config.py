@@ -16,17 +16,21 @@ import logging
 from typing import Any
 
 from pathlib import Path
-import dotenv
 
-# This is only needed while developing. We load the environment from the
-# .env file one level up from the app dir. While developing this file is
-# available directly, but in prod it will not be, and all environment files
-# will be passed in from the docker compose that will read the prod .env file.
-try:
-    if not dotenv.load_dotenv():
-        print("ERROR: No .env file found to load. Using default env/configs.")
-except Exception as exc:
-    print(f"Error loading environment: {exc}")
+# TODO: This should not be needed anymore - deprecated unless we pick up issues.
+#      To be removed in a futrue version.
+# import dotenv
+
+# # This is only needed while developing. We load the environment from the
+# # .env file one level up from the app dir. While developing this file is
+# # available directly, but in prod it will not be, and all environment files
+# # will be passed in from the docker compose that will read the prod .env file.
+# try:
+#     if not dotenv.load_dotenv():
+#         print("ERROR: No .env file found to load. Using default env/configs.")
+# except Exception as exc:
+#     print(f"Error loading environment: {exc}")
+# -- END: deprecated
 
 # We set logging up as early as possible. If there is an APP_LOGLEVEL
 # environment variable, we expect it to be "DEBUG", "INFO", etc. If this is a
@@ -99,7 +103,7 @@ STATIC_DIR = os.path.join(APP_DIR, "static")
 # Our favicon
 FAVICON_PATH = "/static/icons8-charged-battery.gif"
 
-# The theme color - see https://picocss.com/docs/version-picker
+# Possible theme colors. See https://picocss.com/docs/version-picker
 # THEME_COLOR = "red"
 # THEME_COLOR = "pink"
 # THEME_COLOR = "fuchsia"
@@ -114,13 +118,15 @@ FAVICON_PATH = "/static/icons8-charged-battery.gif"
 # THEME_COLOR = "lime"
 # THEME_COLOR = "yellow"
 # THEME_COLOR = "amber"
-THEME_COLOR = "pumpkin"
+# THEME_COLOR = "pumpkin"
 # THEME_COLOR = "orange"
 # THEME_COLOR = "sand"
 # THEME_COLOR = "grey"
 # THEME_COLOR = "zinc"
 # THEME_COLOR = "slate"
 
+# Default theme for prod, but allow it to be overridden from the environment
+THEME_COLOR = envOrDefault("THEME_COLOR", "pumpkin")
 
 # Pick up the app version from the VERSION file in the top level dir
 try:
@@ -139,3 +145,6 @@ DB_NAME = envOrDefault("DB_NAME")
 
 # The number of log entries per page
 LOG_PAGE_LEN = 50
+
+# Max size in bytes for the uploaded battery images
+BAT_IMG_MAX_SZ = 20_000

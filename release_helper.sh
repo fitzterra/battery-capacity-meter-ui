@@ -332,7 +332,9 @@ function checkMR () {
     fi
 
     # Create the MR
-    glab mr create -t "Release Candidate" -d "Release" -s UAT --squash-before-merge -b main
+    glab mr create -t "Release ${V_MAJOR}.${V_MINOR}.${V_PATCH}" \
+        -d "Merge UAT into main for release" \
+        -s UAT --squash-before-merge -b main
 }
 
 ###

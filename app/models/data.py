@@ -2,15 +2,21 @@
 Data interface between API/Web endpoints and the raw data.
 """
 
+import io
+import logging
+
 from math import ceil
 from datetime import datetime
 
 from typing import Iterable
 from peewee import fn, SQL
+from PIL import Image
 
 from app.utils import datesToStrings
 from app.config import LOG_PAGE_LEN
-from .models import db, SoCEvent, Battery, BatCapHistory, Log
+from .models import db, SoCEvent, Battery, BatteryImage, BatCapHistory, Log
+
+logger = logging.getLogger(__name__)
 
 
 def getUnallocatedEvents(raw_dates: bool = False) -> Iterable[dict]:
@@ -451,14 +457,16 @@ def getBatteryDetails(bat_id: str, raw_dates: bool = False) -> dict:
             return None
 
         # Get the battery entry as a dictionary
-        bat = bat.dicts().get()
+        bat_dict = bat.dicts().get()
+        # Does it have an image?
+        bat_dict["has_image"] = bat.get().images.count() != 0
 
         # Return the raw entry if raw_dates is True
         if raw_dates:
-            return bat
+            return bat_dict
 
         # Else convert the dates to strings before returning the dict
-        return datesToStrings(bat)
+        return datesToStrings(bat_dict)
 
 
 def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
@@ -496,7 +504,7 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
             HH:MM:SS" (datetimes) or "YYYY-MM-DD" (date only) strings.
 
     Yields:
-        dict: Each entry as a dictionary as follows::
+        ``dict``: Each entry as a dictionary as follows::
 
             {
                 'bat_id': '2025030501',
@@ -535,6 +543,158 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
                 yield row
             else:
                 yield datesToStrings(row)
+
+
+def getBatteryImage(bat_id: str):
+    """
+    Returns the raw image for the battery with given ID.
+
+    Args:
+        bat_id: The `Battery.bat_id` to retrieve the `BatteryImage` entry for.
+
+    Returns:
+        An error string if the battery is not found or it does not have an
+        image.
+        A `BatteryImage` instance if found.
+    """
+    with db.connection_context():
+        bat = Battery.select().where(Battery.bat_id == bat_id)
+        # We will either 1 or 0 batteries
+        if not bat.count():
+            err = f"Battery with ID {bat_id} not found."
+            logger.debug(err)
+            return err
+
+        # Get the battery instance
+        bat = bat.get()
+
+        # If there are no images linked to this battery, return None
+        if not bat.images.count():
+            err = f"No image found for battery with ID {bat_id}"
+            logger.debug(err)
+            return err
+
+        # Return the image instance
+        logger.debug("Image found for battery with ID: %s", bat_id)
+        return bat.images.get()
+
+
+def setBatteryImage(bat_id: str, img_dat: bytes, mime: str) -> dict:
+    """
+    Sets or updates image for the given battery ID.
+
+    Args:
+        bat_id: The `Battery.bat_id` to create or update the `BatteryImage`
+            entry for.
+        img_dat: The raw image data as bytes.
+        mime: The mime type for the image
+
+    Returns:
+        A dictionary:
+
+        .. python::
+            {
+                'success': bool,
+                'not_found': True if success is false and the battery was not found,
+                'new': If success is True, this is True if a new image was added,
+                    False for an update,
+                'err': If success is False, this is an error message for the reason
+            }
+    """
+    res = {"success": False, "not_found": False, "new": None, "err": None}
+
+    with db.connection_context():
+        bat = Battery.select().where(Battery.bat_id == bat_id)
+        # We will either 1 or 0 batteries
+        if not bat.count():
+            res["err"] = f"Battery with ID {bat_id} not found."
+            res["not_found"]: True
+            logger.debug(res["err"])
+            return res
+
+        # Get the battery instance
+        bat = bat.get()
+
+        try:
+            # Load image just to extract dimensions (no need to decode full pixel data)
+            with Image.open(io.BytesIO(img_dat)) as img:
+                width, height = img.size
+            # Get the size
+            size = len(img_dat)
+
+            # If there are no images linked to this battery, we create a new
+            # one
+            if not bat.images.count():
+                logger.debug("Creating new image for battery with ID %s.", bat_id)
+                img = BatteryImage.create(
+                    battery=bat,
+                    image=img_dat,
+                    mime=mime,
+                    size=size,
+                    width=width,
+                    height=height,
+                )
+                res["new"] = True
+            else:
+                logger.debug("Updating image for battery with ID %s.", bat_id)
+                # Get the image
+                img = bat.images.get()
+                # ... and update and save
+                img.image = img_dat
+                img.mime = mime
+                img.size = size
+                img.width = width
+                img.height = height
+                img.save()
+                res["new"] = False
+        except Exception as exc:
+            res["err"] = "Error updating/creating image. See logs for details."
+            logger.error("Error creating image for bat with ID %s : %s", bat_id, exc)
+            return res
+
+        res["success"] = True
+
+        return res
+
+
+def delBatteryImage(bat_id: str):
+    """
+    Deletes a battery image.
+
+    Args:
+        bat_id: The `Battery.bat_id` to delete the `BatteryImage` entry for.
+
+    Returns:
+        An error string if the battery is not found, or there was an error
+        deleting it.
+        True if the delete was successful, even if the battery has no image.
+    """
+    with db.connection_context():
+        bat = Battery.select().where(Battery.bat_id == bat_id)
+        # We will either 1 or 0 batteries
+        if not bat.count():
+            err = f"Battery with ID {bat_id} not found."
+            logger.debug(err)
+            return err
+
+        # Get the battery instance
+        bat = bat.get()
+
+        # There is no image linked to this battery, so indicate success
+        if not bat.images.count():
+            logger.debug("No image found to delete for battery with ID %s", bat_id)
+            return True
+
+        # Return the image instance
+        logger.debug("Deleting image for battery with ID: %s", bat_id)
+        try:
+            img = bat.images.get()
+            img.delete().execute()
+        except Exception as exc:
+            logger.error("Error deleting image for battery %s - Error: %s", bat, exc)
+            return f"Error deleting battery image for battery with ID {bat_id}"
+
+        return True
 
 
 def getBatMeasurementByUID(bat_id: str, uid: str, raw_dates: bool = False) -> dict:
@@ -793,7 +953,7 @@ def delLogs(before_date: datetime) -> dict:
     Deletes old logs before the given date.
 
     Args:
-        before_date: A `datetime` object representing the date before which
+        before_date: A ``datetime`` object representing the date before which
             records should be deleted.
 
     Returns:

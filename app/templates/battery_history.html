@@ -5,11 +5,36 @@
 {% else %}
 <h3>Battery Capacity Measurement History</h3>
 
-<ul class="bat-cap">
-  <li><strong>Battery ID</strong>: {{ bat['bat_id'] }}</li>
-  <li><strong>Capacity</strong>: {{ bat['mah'] }}mAh</li>
-  <li><strong>Measure Date</strong>: {{ bat['cap_date'] }}</li>
-</ul>
+<section class="container">
+  <ul class="bat-cap">
+    <li><strong>Battery ID</strong>: {{ bat['bat_id'] }}</li>
+    <li><strong>Capacity</strong>: {{ bat['mah'] }}mAh</li>
+    <li><strong>Measure Date</strong>: {{ bat['cap_date'] }}</li>
+  </ul>
+
+  <div
+    class="bat-image-trigger"
+    onclick="takeBatPic();"
+  >
+    {% if bat['has_image'] %}
+    <img class="bat-image" src="img" alt="battery image">
+    {% else %}
+    <svg
+      class='bat-camera'
+      width="48"
+      height="48"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <use xlink:href="/feather-sprite.svg#camera" />
+    </svg>
+    {% endif %}
+  </div>
+
+</section>
 
 <table data-name="battery_history">
   <caption>
