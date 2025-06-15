@@ -62,7 +62,7 @@ def main():
     # Is there a migration file?
     if not os.path.isfile(script):
         logger.info("No migration file found for this version. Quitting...")
-        sys.exit(1)
+        return
 
     # Try to import the run function from this migration file
     try:

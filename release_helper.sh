@@ -26,8 +26,10 @@
 #    * Push change and tags
 #    * If no MR, create one
 # * On main:
-#    * If not on RC version, remind to merge UAT
-#    * Drop RC
+#    * If not on RC version:
+#       * If not a bugfix, remind to merge UAT
+#       * Else allow bumping the patch version
+#    * Else, drop RC
 #    * Write to VERSION
 #    * Commit change
 #    * Add tag
@@ -263,20 +265,55 @@ function UATRelease () {
 }
 
 ###
+# Handles a bugfix release.
+#
+# Bugfixes are done from main if the current version is not an RC version.
+#
+# We bump the patch version and ask for confirmation, or allow aborting the
+# release.
+###
+function bugfixRelease () {
+
+    # Bump the patch
+    V_PATCH=$((V_PATCH + 1))
+
+    prompt="Create production bugfix release ${V_MAJOR}.${V_MINOR}.${V_PATCH}?"
+    if ! YesNo "$prompt"; then
+        echo "Aborting setting bugfix release version..."
+        exit 1
+    fi
+}
+
+###
 # Handle releases on main
 #
-# This function validates that we are on an RC release, then drops that RC
-# because we assume RCs have passed and we do a proper version release now.
+# If not an RC release, try for a bugfix and return if bugfix patch has been
+# set.
 #
-# It confirms the release version and update the version parts if needed, and
+# Else for an RC release, drop the RC part because we assume RCs have passed
+# and we do a proper version release now.
+#
+# It confirms the release version and updates the version parts if needed, and
 # lastly confirms that this is the release we will go to now.
 ###
 function mainRelease () {
-    # We must be on an RC release
+    # If we are not on an RC version, this may be a bugfix ralease
     if [[ -z $V_RC ]]; then
-        echo -e "\nCurrent version is $VERSION - expected a release candidate."
-        echo -e "Have you merged from UAT yet?\nCan not release from this version, aborting..."
-        exit 1
+        echo -e "\nCurrent version is $VERSION - not a Release Candidate.\n"
+
+        if ! YesNo "Is this a bugfix release?"; then
+            echo -e "\nIt looks like you need to merged from UAT to get the"\
+                    "latest RC release ready\n" \
+                    "Can not release from this version, aborting...\n"
+            exit 1
+        fi
+        
+        # Try the bugfix
+        bugfixRelease
+
+        # If we did not exit already, the patch version has been set, so we can
+        # return to set the version
+        return
     fi
 
     # Reset RC part.
