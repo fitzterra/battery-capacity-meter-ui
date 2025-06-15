@@ -11,3 +11,6 @@ pydoctor
 ipython
 ipdb
 pgcli
+
+# This is for generating the ERD 
+eralchemy[graphviz]==1.5.0
