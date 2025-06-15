@@ -26,8 +26,10 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 # the container image build times.
 COPY ./app/ /code/app/
 
-# Lastly we copy the VERSION file to the top level where it lives
-COPY ./VERSION /code/VERSION
+# We also need to top level files and dirs to be copied
+COPY VERSION migrate.py /code/
+# The dir needs it's own copy command.
+COPY migrations/ /code/migrations/
 
 # Command to run the app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
