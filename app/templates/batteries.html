@@ -9,6 +9,7 @@
       <th>Measure Date</th>
       <th><strong>Capacity</strong></th>
       <th>Accuracy</th>
+      <th>Measures</th>
     </tr>
   </thead>
   <tbody>
@@ -18,6 +19,7 @@
       <td>{{ b['cap_date'] }}</td>
       <td data-sort="{{ b['mah'] }}"><strong>{{ b['mah'] }}mAh</strong></td>
       <td data-sort="{{ b['accuracy'] }}">{{ b['accuracy'] }}%</td>
+      <td data-sort="{{ b['h_count'] }}">{{ b['h_count'] }}</td>
     </tr>
     {% endfor %}
   </tbody>
