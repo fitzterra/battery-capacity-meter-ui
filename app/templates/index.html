@@ -99,30 +99,54 @@
         <div class="err-flash"></div>
         <div class="main-content">
           {% if content %} {{ content }} {% else %}
-          <h3>
-            Welcome to the Battery Capacity Meter UI.
-          </h3>
+          <div class="welcome">
+            <h3>
+              Welcome to the Battery Capacity Meter UI.
+            </h3>
 
-          <p>
-            Use the menu on the left to navigate to the main sections:
-          </p>
+            <p>
+              Use the menu on the left to navigate to the main sections:
+            </p>
 
-          <article>
-            <header><strong>Events</strong></header>
-            These are raw measurements that have been received from the Battery
-            Capacity Meter(s).
-            <br>
-            From here you will be able to allocate measurement cycles to the
-            battery, and clean up all unneeded remaining events.
-          </article>
+            <article>
+              <header><strong>Events</strong></header>
+              These are raw measurements that have been received from the Battery
+              Capacity Meter(s).
+              <br>
+              From here you will be able to allocate measurement cycles to the
+              battery, and clean up all unneeded remaining events.
+            </article>
 
-          <article>
-            <header><strong>Batteries</strong></header>
-            This is where you can view all known measured batteries.
-            <br>
-            For each battery you will be able to view all linked measurement
-            cycles, plot graphs of the measure events, etc.
-          </article>
+            <article>
+              <header><strong>Batteries</strong></header>
+              This is where you can view all known measured batteries.
+              <br>
+              For each battery you will be able to view all linked measurement
+              cycles, plot graphs of the measure events, etc.
+            </article>
+
+            <article>
+              <header><strong>Logs</strong></header>
+              These are all messages published by the charge/discharge controller
+              telemetry as log messages on the <code>BCM/log</code> topic.
+              <br>
+              They help debugging issues that may occur during capacity
+              measurements, but need to be cleaned up (from the <code>Clean
+              Up</code> link on the Log view) for time to time.
+            </article>
+
+            Other:
+
+            <article>
+              <header><strong>Search</strong></header>
+              Search for any Battery by ID using the search box in the top
+              header.
+              <br/>
+              This will also find all entries where the search string only
+              matches part of the ID.
+            </article>
+
+          </div>
 
           {% endif %}
         </div>

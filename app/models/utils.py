@@ -52,6 +52,7 @@ def measureSummary(soc_uid: str, bat_id: str, incl_end_events: bool = False) -> 
                 'cycles': int,    # The number of cycles used for the capacity
                                   # measurement
                 'date': datetime, # Date on which the measurement started.
+                'bc_name': str,   # The Battery controller used for the measurement
                 'num_events': int,# Total number of UID event recorded.
                 'per_dch': {      # Values specific to the dis/charge cycles
                     'ch': {       # Charge specific values
@@ -71,7 +72,7 @@ def measureSummary(soc_uid: str, bat_id: str, incl_end_events: bool = False) -> 
 
         If ``success == False``, then only the ``msg`` value is reliable.
         Others may have values but they should not be used.
-    """  # This is a busy method, so @pylint: disable=too-many-return-statements
+    """  # This is a busy function, so @pylint: disable=too-many-return-statements
 
     # Set up the structure we will return, presetting it as failed.
     res = {
@@ -81,6 +82,7 @@ def measureSummary(soc_uid: str, bat_id: str, incl_end_events: bool = False) -> 
         "accuracy": 0,
         "cycles": 0,
         "date": None,
+        "bc_name": "",
         "num_events": 0,
         "per_dch": {
             "ch": {
@@ -120,9 +122,10 @@ def measureSummary(soc_uid: str, bat_id: str, incl_end_events: bool = False) -> 
             bat_id,
         )
 
-        # Determine the measure date from the first entry
+        # Determine the measure date and BC name from the first entry
         # This is ok @pylint: disable=unsubscriptable-object
         res["date"] = events[0].created
+        res["bc_name"] = events[0].bc_name
         # pylint: enable=unsubscriptable-object
 
         # Also add the event count for the caller
@@ -337,7 +340,8 @@ def setCapacityFromSocUID(soc_uid: str, bat_id: str) -> dict:
             bat_cap_hist = BatCapHistory.create(
                 battery=bat,
                 soc_uid=soc_uid,
-                cap_date=bat.cap_date,
+                cap_date=v_res["date"],
+                bc_name=v_res["bc_name"],
                 mah=v_res["mah_avg"],
                 accuracy=v_res["accuracy"],
                 num_events=v_res["num_events"],

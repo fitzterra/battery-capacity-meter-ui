@@ -47,6 +47,7 @@ DOC_IMG_LINK=$(APP_DOC_DIR)/img
 	version \
 	release \
 	docs \
+	gen-erd \
 	dbshell \
 	db-clone-uat \
 	db-drop-uat-snapshot \
@@ -98,6 +99,7 @@ rem-repl      - Starts REPL in container after installing ipython if not already
 shell         - Runs bash inside the container
 show-env      - Shows the full environment the Makefile sees
 docs          - Builds the documentation via pydoctor.
+gen-erd       - Generates an ERD from the database into doc/ERD.md
 image         - Build and push Docker image with versioned tags
 test-migration- Tests that the migration created for the next prod deployment works on the UAT DB.
                 Normal flow is to snapshot UAT, clone UAT from prod, test migration, restore UAT.
@@ -238,6 +240,17 @@ docs: doc-img-link
 	html_url="$$remote_url/blob/$$branch_name/app" && \
 	pydoctor --html-output $(APP_DOC_DIR) --project-url "$$remote_url" \
 		--html-viewsource-base "$$html_url" --template-dir=./pydoctor_templates
+
+# Generates an ERD directly from the DB using eralchemy in a Markdown file with
+# the ERD in mermaid format. The ERD is output to doc/ERD.md
+# The eralchemy output is a bit weird, so we filter it through the
+# er_filter.awk script. Read that for more info
+gen-erd:
+	@eralchemy -i postgresql://$(DB_USER):$(DB_PASS)@$(DB_HOST)/$(DB_NAME) \
+		-m mermaid_er --title "Battery Capacity Meter UI ERD" -o /tmp/_erd.md && \
+		./erd_filter.awk /tmp/_erd.md > doc/ERD.md && \
+		rm -f /tmp_erd.md
+	
 
 # Connects to the DB using pgcli
 # This relies on the DB_??? settings to be in the environment

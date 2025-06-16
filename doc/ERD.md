@@ -1,55 +1,69 @@
-Battery Capacity ERD
-====================
+# Battery Capacity Meter ERD
 
 ```mermaid
+
 ---
 title: Battery Capacity Meter UI ERD
 ---
-
 erDiagram
-    direction LR
-    battery {
-        id integer PK
-        created timestamp
-        modified timestamp
-        bat_id varchar(20) UK
-        cap_date date
-        mah integer
-    }
+soc_event {
+ INTEGER id PK
+   INTEGER adc_v 
+   INTEGER bat_history_id 
+   VARCHAR(20) bat_id 
+   INTEGER bat_v 
+   TEXT bc_name 
+   INTEGER charge 
+   TIMESTAMP created 
+   INTEGER current 
+   INTEGER mah 
+   INTEGER period 
+   REAL shunt 
+   SMALLINT soc_cycle 
+   INTEGER soc_cycle_period 
+   SMALLINT soc_cycles 
+   TEXT soc_state 
+   TEXT soc_uid 
+   TEXT state 
+}
+bat_cap_history {
+ INTEGER id PK
+   INTEGER accuracy 
+   INTEGER battery_id 
+   TEXT bc_name 
+   TIMESTAMP cap_date 
+   TIMESTAMP created 
+   INTEGER mah 
+   INTEGER num_events 
+   JSON per_dch 
+   TEXT soc_uid 
+}
+battery {
+ INTEGER id PK
+   INTEGER accuracy 
+   VARCHAR(20) bat_id 
+   DATE cap_date 
+   TIMESTAMP created 
+   INTEGER mah 
+   TIMESTAMP modified 
+}
+log {
+ INTEGER id PK
+   TIMESTAMP created 
+   TEXT level 
+   TEXT msg 
+}
+battery_image {
+ INTEGER battery_id PK
+   SMALLINT height 
+   BYTEA image 
+   TEXT mime 
+   INTEGER size 
+   SMALLINT width 
+}
+bat_cap_history one or zero--0+ soc_event : has
+battery one or zero--0+ bat_cap_history : has
+battery one or zero--zero or one battery_image : has
 
-    bat_cap_history {
-        id integer PK
-        created timestamp
-        battery_id integer FK
-        soc_uid text UK
-        cap_date timestamp
-        mah integer
-        accuracy integer
-        num_events integer
-        per_dch json
-    }
 
-    soc_event {
-        id integer PK
-        created timestamp
-        bc_name text
-        state text
-        bat_id varchar(20)
-        bat_v integer
-        adc_v integer
-        current integer
-        charge integer
-        mah integer
-        period integer
-        shunt real
-        soc_state text
-        soc_cycle smallint
-        soc_cycles smallint
-        soc_cycle_period integer
-        soc_uid text
-        bat_history_id integer FK
-    }
-
-    bat_cap_history ||--|{ soc_event: "has"
-    battery ||--|{ bat_cap_history: "has"
 ```
