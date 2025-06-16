@@ -285,6 +285,7 @@ class BatCapHistory(BaseModel):
     )
     soc_uid = TextField(null=False, unique=True)
     cap_date = DateTimeField(null=False)
+    bc_name = TextField(null=False, index=True)
     mah = IntegerField(null=False)
     accuracy = IntegerField(null=False)
     num_events = IntegerField(null=False)

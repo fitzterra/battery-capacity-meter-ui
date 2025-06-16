@@ -44,6 +44,7 @@
     <tr>
       <th>Measure Date</th>
       <th>Measure UID</th>
+      <th>Controller</th>
       <th><strong>Capacity</strong></th>
       <th>Accuracy</th>
       <th>Events</th>
@@ -54,6 +55,7 @@
     <tr>
       <td>{{ h['cap_date'] }}</td>
       <td><a href="{{ h['soc_uid'] }}/">{{ h['soc_uid'] }}</a></td>
+      <td>{{ h['bc_name'] }}</td>
       <td><strong>{{ h['mah'] }}mAh</strong></td>
       <td>{{ h['accuracy'] }}%</td>
       <td>{{ h['num_events'] }}</td>

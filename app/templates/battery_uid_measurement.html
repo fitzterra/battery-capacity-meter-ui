@@ -11,6 +11,11 @@
   <li><strong>Measure Date</strong>: {{ details['cap_date'] }}</li>
   <li><strong>Capacity</strong>: {{ details['mah'] }}mAh</li>
   <li><strong>Accuracy</strong>: {{ details['accuracy'] }}%</li>
+  <li>
+    <strong>Shunts</strong>:
+      ch={{ details['shunt']['ch'] }}Ω,
+      dch={{ details['shunt']['dch'] }}Ω
+  </li>
   <li><strong>Controller</strong>: {{ details['bc_name'] }}</li>
 </ul>
 
