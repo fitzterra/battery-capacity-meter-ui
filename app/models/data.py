@@ -480,9 +480,9 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
 
         select
             b.bat_id,
-            b.cap_date,
+            h.cap_date,
             h.soc_uid,
-            b.mah,
+            h.mah,
             h.accuracy,
             h.num_events
         from battery b
@@ -524,16 +524,16 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
         query = (
             Battery.select(
                 Battery.bat_id,
-                Battery.cap_date,
+                BatCapHistory.cap_date,
                 BatCapHistory.soc_uid,
-                Battery.mah,
+                BatCapHistory.mah,
                 BatCapHistory.accuracy,
                 BatCapHistory.num_events,
             )
             .join(BatCapHistory)
             .where(Battery.bat_id == bat_id)
             # Order descending on capture date so we get the newest first.
-            .order_by(Battery.cap_date.desc())
+            .order_by(BatCapHistory.cap_date.desc())
         )
 
         # Return the results, but convert any datetime type elements in the result

@@ -71,7 +71,7 @@ def measureSummary(soc_uid: str, bat_id: str, incl_end_events: bool = False) -> 
 
         If ``success == False``, then only the ``msg`` value is reliable.
         Others may have values but they should not be used.
-    """  # This is a busy method, so @pylint: disable=too-many-return-statements
+    """  # This is a busy function, so @pylint: disable=too-many-return-statements
 
     # Set up the structure we will return, presetting it as failed.
     res = {
