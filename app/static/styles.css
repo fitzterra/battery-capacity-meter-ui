@@ -201,6 +201,12 @@ table caption {
     }
 }
 
+
+/* All text in the main welcome div on the index page if there is no content. */
+div.welcome{
+    text-align: left;
+}
+
 /* Article used for showing an error. */
 article.err {
 	background-color: var(--pico-color-pink-850);

@@ -195,7 +195,8 @@ class BatCapHistory(BaseModel):
     Battery capacity history entry.
 
     Each entry records one capacity measurement cycle for a `Battery`. A
-    `Battery` may have more than capacity measurement in this history table.
+    `Battery` may have more than one capacity measurement in this history
+    table.
 
     Measuring the battery capacity is done by the **Battery Capacity Meter**
     (BCM) by starting a SoC measurement process. The SoC measurement flow is as
@@ -284,6 +285,7 @@ class BatCapHistory(BaseModel):
     )
     soc_uid = TextField(null=False, unique=True)
     cap_date = DateTimeField(null=False)
+    bc_name = TextField(null=False, index=True)
     mah = IntegerField(null=False)
     accuracy = IntegerField(null=False)
     num_events = IntegerField(null=False)

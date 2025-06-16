@@ -9,7 +9,7 @@ from math import ceil
 from datetime import datetime
 
 from typing import Iterable
-from peewee import fn, SQL
+from peewee import fn, SQL, JOIN
 from PIL import Image
 
 from app.utils import datesToStrings
@@ -406,7 +406,8 @@ def getKnownBatteries(
     raw_dates: bool = False, search: str | None = None
 ) -> Iterable[dict]:
     """
-    Generator that returns all known batteries from the `Battery` table.
+    Generator that returns all known batteries from the `Battery` table,
+    including a count of how many history entries each has.
 
     Args:
         raw_dates: If True, dates will be returned as datetime or date objects.
@@ -417,10 +418,26 @@ def getKnownBatteries(
             will be returned. May be an empty list.
 
     Yields:
-        Each entry as a dictionary representation of a `Battery` entry.
+        Dicts based on `Battery` and count of linked `BatCapHistory` entries:
+
+        .. python::
+            {'id': 24,
+              'created': '2025-05-03 11:42:57',
+              'modified': '2025-05-03 11:42:57',
+              'bat_id': '2025050202',
+              'cap_date': '2025-05-12',
+              'mah': 1393,
+              'accuracy': 98,
+              'h_count': 2},
+
     """
     with db.connection_context():
-        query = Battery.select().order_by(Battery.bat_id)
+        query = (
+            Battery.select(Battery, fn.COUNT(BatCapHistory.id).alias("h_count"))
+            .join(BatCapHistory, JOIN.LEFT_OUTER)
+            .group_by(Battery.id)
+            .order_by(Battery.bat_id)
+        )
 
         # Any search criteria?
         if search:
@@ -480,9 +497,10 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
 
         select
             b.bat_id,
-            b.cap_date,
+            h.cap_date,
+            h.bc_name,
             h.soc_uid,
-            b.mah,
+            h.mah,
             h.accuracy,
             h.num_events
         from battery b
@@ -492,11 +510,11 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
 
     which may a result as::
 
-        +------------+------------+----------+------+----------+------------+
-        | bat_id     | cap_date   | soc_uid  | mah  | accuracy | num_events |
-        |------------+------------+----------+------+----------+------------|
-        | 2025030501 | 2025-03-05 | 28dac6f2 | 1838 | 99       | 57062      |
-        +------------+------------+----------+------+----------+------------+
+        +------------+------------+-----------+----------+------+----------+------------+
+        | bat_id     | cap_date   | bc_name   | soc_uid  | mah  | accuracy | num_events |
+        |------------+------------+-----------+----------+------+----------+------------|
+        | 2025030501 | 2025-03-05 | BC0       | 28dac6f2 | 1838 | 99       | 57062      |
+        +------------+------------+------------+----------+------+----------+------------+
 
     Args:
         raw_dates: If True, dates will be returned as datetime or date objects.
@@ -513,6 +531,7 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
                 # Or with raw_dates == True
                 # 'cap_date': datetime.date(2025, 3, 5),
 
+                'bc_name': "BC0",
                 'soc_uid': '28dac6f2',
                 'mah': 1838,
                 'accuracy': 99,
@@ -524,16 +543,17 @@ def getBatteryHistory(bat_id: str, raw_dates: bool = False) -> Iterable[dict]:
         query = (
             Battery.select(
                 Battery.bat_id,
-                Battery.cap_date,
+                BatCapHistory.cap_date,
+                BatCapHistory.bc_name,
                 BatCapHistory.soc_uid,
-                Battery.mah,
+                BatCapHistory.mah,
                 BatCapHistory.accuracy,
                 BatCapHistory.num_events,
             )
             .join(BatCapHistory)
             .where(Battery.bat_id == bat_id)
             # Order descending on capture date so we get the newest first.
-            .order_by(Battery.cap_date.desc())
+            .order_by(BatCapHistory.cap_date.desc())
         )
 
         # Return the results, but convert any datetime type elements in the result
@@ -725,6 +745,10 @@ def getBatMeasurementByUID(bat_id: str, uid: str, raw_dates: bool = False) -> di
                  'cap_date': '2025-02-01 16:46:07',
                  'mah': 2344,
                  'accuracy': 80,
+                 'shunt': {
+                    'ch': 1.3,  # Charge shunt resistor value in ohms
+                    'dch': 8.5, # Discharge shunt resistor value in ohms
+                 },
                  'bc_name': 'BC0'},
             'cycles': [
                 {
@@ -810,6 +834,10 @@ def getBatMeasurementByUID(bat_id: str, uid: str, raw_dates: bool = False) -> di
             ),
             "mah": uid_hist.mah,
             "accuracy": uid_hist.accuracy,
+            "shunt": {
+                "ch": uid_hist.per_dch["ch"]["shunt"],
+                "dch": uid_hist.per_dch["dch"]["shunt"],
+            },
             "bc_name": cycles[0]["bc_name"],
         }
         res["cycles"] = cycles
