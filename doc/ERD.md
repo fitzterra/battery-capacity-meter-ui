@@ -30,6 +30,7 @@ bat_cap_history {
  INTEGER id PK
    INTEGER accuracy 
    INTEGER battery_id 
+   TEXT bc_name 
    TIMESTAMP cap_date 
    TIMESTAMP created 
    INTEGER mah 
