@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 COPY ./app/ /code/app/
 
 # We also need to top level files and dirs to be copied
-COPY VERSION migrate.py /code/
+COPY VERSION deploy.py /code/
 # The dir needs it's own copy command.
 COPY migrations/ /code/migrations/
 
