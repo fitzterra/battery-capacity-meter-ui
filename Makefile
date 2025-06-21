@@ -40,7 +40,8 @@ DOC_IMG_LINK=$(APP_DOC_DIR)/img
 	dev-setup \
 	image \
 	deploy \
-	test-migration \
+	test-deploy \
+	templates \
 	docker-prune \
 	run \
 	stop \
@@ -101,8 +102,11 @@ show-env      - Shows the full environment the Makefile sees
 docs          - Builds the documentation via pydoctor.
 gen-erd       - Generates an ERD from the database into doc/ERD.md
 image         - Build and push Docker image with versioned tags
-test-migration- Tests that the migration created for the next prod deployment works on the UAT DB.
-                Normal flow is to snapshot UAT, clone UAT from prod, test migration, restore UAT.
+test-deploy   - Tests the deployment process for the next prod deployment.
+                Very helpful for testing that migrations for the next prod deployment works
+                on the UAT DB.
+                Normal flow is to snapshot UAT, clone UAT from prod, test deploy, restore UAT.
+templates     - Compiles all HTML temlates.
 deploy        - Deploys the latest release to production. Meant to be run from GL CI Pipeline.
 release       - Creates a release. In UAT creates an RC release, and a prod release in main.
 docker-prune  - Deletes all stopped containers to reclaim space. Will ask for confirmation.
@@ -158,31 +162,35 @@ deploy:
 		docker rm $(DEPLOY_NAME) || true && \
 		docker run --rm --env-file $(MERGED_ENV) \
 			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) \
-			python migrate.py && \
+			python deploy.py && \
 		docker run -d --name $(DEPLOY_NAME) --env-file $(MERGED_ENV) \
 			-p $(DEPLOY_PORT):$(APP_PORT) \
 			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) $(IMAGE) && \
 		rm -f $(MERGED_ENV) \
 		"
-# Tests the production migration script.
+# Tests the production deployment script - including migrations.
 # The flow should be something line this:
 # $ make db-snapshot-uat      # Make a snapshot of UAT if needed
 # $ make db-clone-uat         # Clone prod to UAT to have a db migration test
-# $ make test-migration       # Run this test
+# $ make test-deploy          # Run this test
 # $ make db-restore-uat       # Return to the previous UAT snapshot
 # $ make db-drop-uat-snapshot # Drop the snapshot again
 #
 # The migrations will by default be run for the non RC version, i.e. it strips
-# _RC?? from VERSION and forces the migrations to run for that version.
+# _RC?? from VERSION and forces the migrations to run for that version. This
+# makes it easy so that you do not have to create symlinks from RC versions to
+# the deploy version migrations.
 # The default is to run in DRY-RUN mode. To not run dry run, pass DRY_RUN=0 at
 # the end of the make command.
-test-migration:
-	docker exec -ti $(CONTAINER_NAME) env VERSION=$${VERSION%_*} DRY_RUN=$${DRY_RUN:-1} ./migrate.py
+test-deploy:
+	docker exec -ti $(CONTAINER_NAME) env VERSION=$${VERSION%_*} DRY_RUN=$${DRY_RUN:-1} ./deploy.py
 	@if [[ -z $$DRY_RUN ]]; then \
 		echo -e "\nDry run is the default. To disable, run:\n    make test-migration DRY_RUN=0\n"; \
 	 fi
 
-	
+templates:
+	@./compile_templates.py
+
 # Removes all old stopped containers to reclaim space
 docker-prune:
 	docker container prune
@@ -250,7 +258,6 @@ gen-erd:
 		-m mermaid_er --title "Battery Capacity Meter UI ERD" -o /tmp/_erd.md && \
 		./erd_filter.awk /tmp/_erd.md > doc/ERD.md && \
 		rm -f /tmp_erd.md
-	
 
 # Connects to the DB using pgcli
 # This relies on the DB_??? settings to be in the environment
@@ -289,7 +296,6 @@ repl:
 # installed.
 rem-repl:
 	@docker exec -ti $(CONTAINER_NAME) bash -c "pip install ipython; ipython"
-
 
 # Runs bash inside the container
 shell:
