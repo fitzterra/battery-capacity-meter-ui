@@ -31,7 +31,7 @@
 }
 
 /* Battery search input in header */
-.battery-search {
+form .battery-search {
 	margin-bottom: 0 !important;
 	width: 9rem !important;
 	border-radius: var(--pico-border-radius) !important;
@@ -39,6 +39,14 @@
 	background-position: center left calc(var(--pico-form-element-spacing-horizontal) - 0.6rem) !important;
 	font-size: 0.8rem !important;
 	padding: 0 1rem 0 1.7rem !important;
+}
+
+/* Label scan icon in the header next to search */
+form .scan-label {
+	margin: 0px;
+	padding: 0px;
+	background: none;
+	border: none;
 }
 
 /* Load spinner while waiting for the API call */
@@ -328,13 +336,9 @@ button span.u-icon {
 }
 
 /***
- * The battery image capture modal styling
+ * General modal dialog styling
  ***/
-.bat-img-modal main {
-    border: 0px;
-}
-
-.bat-img-modal header {
+dialog.modal header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -342,21 +346,14 @@ button span.u-icon {
     padding-right: 0.5rem; /* Optional tweak to give space near edge */
 }
 
-.bat-img-modal header h3 {
-    flex: 1;
-    text-align: center;
-    margin: 0; /* Ensure no default margin messes with alignment */
+/***
+ * The battery image capture modal styling
+ ***/
+dialog.bat-img main {
+    border: 0px;
 }
 
-.bat-img-modal .close-modal {
-    font-size: 2rem;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0.1rem 0.2rem;
-    margin-left: auto;
-}
-
-.bat-img-modal .video-wrapper {
+dialog.bat-img .video-wrapper {
   position: relative;
   width: 100%;
   /*aspect-ratio: 4 / 3;*/ /* Or 16 / 9 if preferred */
@@ -367,8 +364,8 @@ button span.u-icon {
   overflow: hidden;
 }
 
-.bat-img-modal .video-wrapper video.cam-stream,
-.bat-img-modal .video-wrapper canvas.cam-canvas {
+dialog.bat-img .video-wrapper video.cam-stream,
+dialog.bat-img .video-wrapper canvas.cam-canvas {
   position: absolute;
   top: 0;
   left: 0;
@@ -378,7 +375,7 @@ button span.u-icon {
   border-radius: inherit;
 }
 
-.bat-img-modal .msg {
+dialog.bat-img .msg {
   margin: 0.5rem 0;
   padding: 0.5rem;
   border-radius: 0.3rem;
@@ -389,11 +386,33 @@ button span.u-icon {
   transition: opacity 0.5s ease;
 }
 
-.bat-img-modal .msg.show {
+dialog.bat-img .msg.show {
   opacity: 1;
 }
 
 /*** END: battery image modal ***/
+
+/***
+ * The battery label scan modal styling
+ ***/
+dialog.scan-label p.help {
+    margin: 0.5rem auto 0px;
+}
+
+/* The feedback of what the scanner is detecting para */
+dialog.scan-label p.seeing {
+	font-size: smaller;
+	height: 1rem;
+	padding: 0px;
+	margin: 0px;
+	color: var(--pico-primary);
+    text-align: left;
+}
+
+dialog.scan-label p.seeing span {
+	color: var(--pico-code-color);
+}
+/*** END: battery label scan modal ***/
 
 /* Inactive logs page navigation anchors. */ 
 table td.logs-nav a.inactive {

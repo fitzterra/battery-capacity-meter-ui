@@ -27,6 +27,9 @@
     href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable-base.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/gh/tofsjonas/sortable@latest/dist/sortable.min.js"></script>
 
+    <!-- Label OCR -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js'></script>
+
     <!-- Image cropping -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.1.3/cropper.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.1.3/cropper.js"></script>
@@ -54,6 +57,7 @@
           name="search"
           placeholder="bat id or part"
         >
+        <button type="button" class="scan-label" onclick="scanLabel();">⛶</button>
       </form>
       <span class="version">v{{ version }}</span>
     </header>
@@ -154,11 +158,11 @@
     </div>
 
     <!-- Battery Image Modal (Initially hidden) -->
-    <dialog class="bat-img-modal">
+    <dialog class="bat-img modal">
       <article>
         <header>
           <h3>Battery Image Capture</h3>
-          <button class="close-modal" aria-label="Close" data-cancel>&times;</button>
+          <button class="close" aria-label="Close" data-cancel></button>
         </header>
 
         <main class="body">
@@ -174,12 +178,28 @@
           <button class="btn-capture" hidden>Take Pic</button>
           <button class="btn-save" hidden>Save</button>
           <button class="btn-crop" hidden>Crop</button>
-          <button class="btn-rotate left" hidden><span class="u-icon">↺<span></button>
-          <button class="btn-rotate right" hidden><span class="u-icon">↻<span></button>
+          <button class="btn-rotate left" hidden><span class="u-icon">↺</span></button>
+          <button class="btn-rotate right" hidden><span class="u-icon">↻</span></button>
           <button class="btn-apply" hidden>Apply</button>
           <button class="btn-back" hidden>Back</button>
           <button class="btn-cancel" data-cancel>Cancel</button>
         </footer>
+      </article>
+    </dialog>
+
+    <!-- Dialog for scanning a battery label by the webcam to find search -->
+    <dialog class="scan-label modal">
+      <article>
+        <header>
+          <h3>Scan Label</h3>
+          <button class="close" aria-label="Close" onclick="closeScanLabel();"></button>
+        </header>
+
+        <video autoplay muted playsinline style="width: 100%; height: auto;"></video>
+        <canvas style="display: none;"></canvas>
+
+        <p class="help">Hold battery label up to camera…</p>
+        <p class="seeing">Seeing: <span></span></p>
       </article>
     </dialog>
 
