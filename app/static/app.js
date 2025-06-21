@@ -3,6 +3,124 @@
  **/
 let currentChart = null; // Track the current chart instance
 
+
+/**
+ * Shows the spinner overlay normally shown for HTMX calls to the backend.
+ *
+ * For the HTMX flow, the overlay still allows full interaction with the page
+ * behind it.
+ *
+ * When calling this function show it, we disable any interaction with the page
+ * in the background.
+ *
+ * Close it again via the hideSpinner() function.
+ ***/
+function showSpinner() {
+    // Get the spinner overlay element
+    const spinner = document.querySelector('.loading-overlay');
+
+    // Normal view has it displayed full screen, but the opacity set to 0, so
+    // we set the opacity to 1.
+    spinner.style.opacity = '1';
+    // The reason the overlay is displayed full screen, but still allows
+    // interaction with the background page is because pointerevents are set to
+    // 'none' which ignores these and passes it through to the background page.
+    // We change it to 'auto' here to intercept the events on the overlay.
+    spinner.style.pointerEvents = 'auto';  // enable interaction block
+    // Do not allow the page in the background to scroll.
+    document.body.style.overflow = 'hidden';  // disable scrolling
+}
+
+/**
+ * Closes the spinner overlay opened by showSpinner().
+ *
+ * We also reset the functionality so that HTMX usage will again allow
+ * interaction with the page in the background. See showSpinner().
+ **/
+function hideSpinner() {
+    const spinner = document.querySelector('.loading-overlay');
+    spinner.style.opacity = '0';
+    spinner.style.pointerEvents = 'none';  // reset interaction
+    document.body.style.overflow = '';      // re-enable scrolling
+}
+
+/**
+ * Clears and hides the canvas element passed in.
+ *
+ * Args:
+ *  canvas: A <canvas> element to clear and hide.
+ **/
+function clearCanvas(canvas) {
+    canvas.hidden = true;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+/**
+ * Delay function in async flows.
+ *
+ * Call as:
+ *
+ *  await sleep(1000);
+ *
+ **/
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Webcam handler.
+ *
+ * Allows you to start and stop the webcam.
+ *
+ * If the user has not already allowed webcam access, the browser will ask the
+ * user to give give this permission first.
+ *
+ * Args:
+ *  video: A <video> element to use for displaying the webcam video steam.
+ *
+ * Returns:
+ *  An object with two methods:
+ *      start(): This is an async method to start the webcam.
+ *               Call with `res = await cam.start()`
+ *               It return true if the cam was started, false otherwise and an
+ *               alert will be shown with the reason for failure.
+ *      stop(): Stops the webcam stream.
+ *              Call with `cam.stop()`
+ **/
+function webCam(video) {
+    // Will be used for the media stream from the camera
+    let stream = null;
+
+    // Starts the webcam and streams the video to the video element.
+    async function start() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            await video.play();
+            return true;
+        } catch (err) {
+            console.error('Webcam error:', err);
+            alert(`Unable to access webcam. Error: ${err}`);
+        }
+        // Error opening webcam
+        return false;
+    }
+
+    // Stops the webcam stream and reset the video element steam attribute to
+    // null.
+    function stop() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            video.srcObject = null;
+        }
+    }
+
+    // Return an object with start and stop methods.
+    return {start, stop}
+}
+
 // ---- Chart Handling ----
 function initChartHandler() {
     document.body.addEventListener('htmx:afterOnLoad', function (evt) {
@@ -236,10 +354,10 @@ function initErrorHandler() {
 
 // ---- Battery Image Capture Handling ----
 function initBatImgCapModal() {
-
-    const modal = document.querySelector('.bat-img-modal');
+    const modal = document.querySelector('dialog.bat-img');
     const video = modal.querySelector('.cam-stream');
     const canvas = modal.querySelector('.cam-canvas');
+
     const takeBtn = modal.querySelector('.btn-capture');
     const cropBtn = modal.querySelector('.btn-crop');
     const saveBtn = modal.querySelector('.btn-save');
@@ -248,9 +366,13 @@ function initBatImgCapModal() {
     const applyBtn = modal.querySelector('.btn-apply');
     const backBtn = modal.querySelector('.btn-back');
     const cancelBtns = modal.querySelectorAll('[data-cancel]');
+
     // We expect the max image upload size to be set on the div.video-wrapper
     // element as `data-max-size="nnnn"`
     const maxSize = parseInt(document.querySelector('.video-wrapper').dataset.maxSize, 10);
+
+    // Set up a webcam instance for streaming to the video element
+    const cam = webCam(video);
 
     // A list of all buttons that we control via the setState function
     const buttons = [takeBtn, cropBtn, applyBtn, rotLeftBtn, rotRightBtn, backBtn, saveBtn];
@@ -272,46 +394,27 @@ function initBatImgCapModal() {
     // The current state we're in.
     let state = null;
 
-    function openModal() {
+    async function openModal() {
+        // Show the spinner overlay while we open the cam
+        showSpinner();
+        let res = await cam.start();
+        hideSpinner();
+
+        // Camera opened OK?
+        if (! res) {
+            await closeModal();
+            return;
+        }
+
         modal.showModal();
-        startWebcam();
         setState('capture');
     }
 
-    function closeModal() {
+    async function closeModal() {
         modal.close();
-        stopWebcam();
-        clearCanvas();
+        cam.stop();
+        clearCanvas(canvas);
         if (cropper) cancelCropping();
-    }
-
-    function startWebcam() {
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(mediaStream => {
-                stream = mediaStream;
-                video.srcObject = stream;
-                video.play();
-            })
-            .catch(err => {
-                console.error('Webcam error:', err);
-                alert('Unable to access webcam');
-                closeModal();
-            });
-    }
-
-    function stopWebcam() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-            video.srcObject = null;
-        }
-    }
-
-    function clearCanvas() {
-        canvas.hidden = true;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        video.hidden = false;
     }
 
     /**
@@ -339,7 +442,7 @@ function initBatImgCapModal() {
         
         // Stop the webcam and change to the save image state which will allow
         // detouring to cropping.
-        stopWebcam();
+        cam.stop();
         setState('save');
     }
 
@@ -429,7 +532,6 @@ function initBatImgCapModal() {
      * backend as a JPEG image
      **/
     async function saveImage() {
-
         // Get initial image data as a JPEG at 0.9 quality value
         let rawImg = await new Promise(resolve =>
             canvas.toBlob(b => resolve(b), 'image/jpeg', 0.9)
@@ -495,7 +597,7 @@ function initBatImgCapModal() {
             if (response.ok) {
                 // All good, we can close the modal and refresh the page
                 console.log('Upload successful');
-                closeModal();
+                await closeModal();
                 location.reload();
             } else {
                 let errorText = await response.text();
@@ -511,9 +613,8 @@ function initBatImgCapModal() {
         }
     }
 
-
     function showErrorMessage(msg) {
-        const errBox = document.querySelector('.bat-img-modal .error-msg');
+        const errBox = document.querySelector('dialog.bat-img .error-msg');
 
         errBox.textContent = msg;
         errBox.hidden = false;
@@ -567,12 +668,145 @@ function initBatImgCapModal() {
     window.takeBatPic = openModal;
 }
 
+// ---- Battery Label Scanning Handling ----
+function initBatLabelScan() {
+    // Find the modal, video and canvas elements
+    const modal = document.querySelector('dialog.scan-label');
+    const video = modal.querySelector('video');
+    const canvas = modal.querySelector('canvas');
+    const seeing = modal.querySelector('p.seeing span');
+    // This is the number of digits we expect in the label.
+    const labelDigits = 10;
+    // The OCR can be quite noisy, so we look for a string that is exactly 10
+    // digits, anchored at the start or end of the OCRd text, or preceded or
+    // followed by any non digit characters line non-printable characters, etc.
+    // This does not handle labels with spaces or text in them like is possible
+    // with the lable generator on the Battery Controller, but those are mainly
+    // used for testing.
+    // If we will allow labels with non digits later, this regex needs to be
+    // updated.
+    const labelPattern = new RegExp(`(?:^|\\D)(\\d{${labelDigits}})(?:\\D|$)`);
+
+    // Set up a webcam instance for streaming to the video element
+    const cam = webCam(video);
+
+    // This will be the tessarect worker we set up in startScan
+    let ocr_worker = null;
+
+    // Will be used for the media stream from the camera
+    let stream = null;
+
+    // Will be set to the matched label if any matches are made
+    let label = null;
+
+    async function openModal() {
+        // Make sure to reset the match label
+        label = null;
+        let err = null;
+
+        // Open the webcam while showing a spinner
+        showSpinner();
+        const res = await cam.start();
+
+        // If the webcam was opened successfully, we can continue
+        if (res === true) {
+            // Creating the tessarect worker takes some time, but we keep
+            // showing the spinner until we have this set up and no errors.
+            try {
+                ocr_worker = await Tesseract.createWorker('eng');
+                await ocr_worker.setParameters(
+                    {
+                        tessedit_char_whitelist: '0123456789'
+                    }
+                );
+            } catch(err) {
+                alert(`Error setting up the OCR worker:: ${err}`);
+            }
+
+            hideSpinner();
+
+            if (! err) {
+                // Now we're good to go
+                modal.showModal();
+                await scanLoop();
+            }
+        }
+
+        // Close the modal and clean up
+        await closeModal();
+    }
+
+    async function closeModal() {
+        cam.stop();
+        modal.close();
+        // Terminate the OCR worker if we have one running
+        if (ocr_worker !== null) {
+            await ocr_worker.terminate();
+            ocr_worker = null;
+        }
+        clearCanvas(canvas);
+
+        // Did we get a label?
+        if (label !== null) {
+            console.log("will search for label: ", label);
+            // Start a search using the label.
+            window.location.href = `/bat/?search=${label}`;
+        }
+    }
+
+    async function scanLoop() {
+        // Get the canvas context and set the canvas to the video size.
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // The OCR test we get back
+        let text = '';
+
+        while (true) {
+            // Draw an image from the video stream onto the canvas.
+            context.drawImage(video, 0, 0);
+
+            // Do OCR
+            try {
+                // Destructuring without const or let requires parentheses - stupid JS :-(
+                // This sets text to anything that was recognized.
+                ({ data: { text } } = await ocr_worker.recognize(canvas));
+            } catch(err) {
+                console.log("Error doing recognitions: ", err);
+                await sleep(200);
+                continue;
+            }
+
+            // Show the text we are currently seeing as visual feedback,
+            // replacing any non printable characters with a symbol
+            seeing.textContent = text.replace(/[^\x20-\x7E]/g, '⎋');
+
+            // Check if we matched a label
+            const match = text.match(labelPattern);
+
+            if (match) {
+                console.log("Matched ID:", match[1]);
+                // We matched the label pattern. Set label to the match and
+                // exit
+                label = match[1];
+                break;
+            }
+            // Sleep for a bit
+            await sleep(50);
+        }
+    }
+
+    // Export the openModal function to be used outside.
+    window.scanLabel = openModal;
+}
+
 // ---- Initialize everything ----
 function init() {
-
     initChartHandler();
     initErrorHandler();
     initBatImgCapModal();
+    initBatLabelScan();
 }
 
 document.addEventListener('DOMContentLoaded', init);
