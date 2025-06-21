@@ -142,6 +142,8 @@ DB_USER = envOrDefault("DB_USER")
 DB_PASS = envOrDefault("DB_PASS")
 DB_NAME = envOrDefault("DB_NAME")
 
+# Templates dir relative to top level dir
+TMPL_DIR = envOrDefault("TMPL_DIR", "app/templates")
 
 # The number of log entries per page
 LOG_PAGE_LEN = 50

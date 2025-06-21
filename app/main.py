@@ -45,6 +45,7 @@ from .config import (
     STATIC_DIR,
     VERSION,
     THEME_COLOR,
+    TMPL_DIR,
     BAT_IMG_MAX_SZ,
 )
 
@@ -56,7 +57,8 @@ Request.max_content_length = int(BAT_IMG_MAX_SZ * 5.5)
 logger = logging.getLogger(__name__)
 
 # Set the base for our templates
-Template.initialize("app/templates")
+Template.initialize(TMPL_DIR)
+
 # Ensure we return text/html as the default application type
 Response.default_content_type = "text/html"
 
