@@ -797,8 +797,9 @@ function initBatLabelScan() {
         }
     }
 
-    // Export the openModal function to be used outside.
+    // Export the openModal and closeModal functions to be used outside.
     window.scanLabel = openModal;
+    window.closeScanLabel = closeModal;
 }
 
 // ---- Initialize everything ----
