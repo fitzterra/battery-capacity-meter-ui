@@ -54,6 +54,7 @@ DOC_IMG_LINK=$(APP_DOC_DIR)/img
 	db-drop-uat-snapshot \
 	db-snapshot-uat \
 	db-restore-uat \
+	db-list \
 	repl \
 	rem-repl \
 	shell \
@@ -87,14 +88,18 @@ run           - Start the container in the foreground
 stop          - Stop any running containers
 version       - Show the current app version (from VERSION file)
 dbshell       - Connects to the DB using pgcli : psql://${DB_USER}@${DB_HOST}/${DB_NAME}
-db-clone-uat  - Clones $(DB_NAME) to $(DB_NAME_UAT) on $(DB_HOST).
+db-clone-uat  - Clones $(DB_NAME_PROD) to $(DB_NAME_UAT) on $(DB_HOST).
                 You need SSH access to $(DB_HOST) and full DB admin rights there.
 db-snapshot-uat
-              - Creates a snapshot of $(DB_NAME_UAT) DB as $(DB_NAME_UAT)_ss
+              - Creates a snapshot of $(DB_NAME_UAT) DB as $(DB_NAME_UAT)_ss.
+			    Needs SSH access to $(DB_HOST)
 db-restore-uat
               - Restores a previous $(DB_NAME_UAT)_ss snapshot DB to $(DB_NAME_UAT).
+			    Needs SSH access to $(DB_HOST)
 db-drop-uat-snashot
               - Drops the $(DB_NAME_UAT)_ss snapshot DB created before if it exists.
+			    Needs SSH access to $(DB_HOST)
+db-list       - Lists all $(DB_NAME_PROD) related DBs. Needs SSH access to $(DB_HOST)
 repl          - Starts a local ipython REPL with the environment set up from .env .env_local
 rem-repl      - Starts REPL in container after installing ipython if not already installed
 shell         - Runs bash inside the container
@@ -170,7 +175,7 @@ deploy:
 		"
 # Tests the production deployment script - including migrations.
 # The flow should be something line this:
-# $ make db-snapshot-uat      # Make a snapshot of UAT if needed
+# $ make db-snapshot-uat   # Make a snapshot of UAT if needed
 # $ make db-clone-uat         # Clone prod to UAT to have a db migration test
 # $ make test-deploy          # Run this test
 # $ make db-restore-uat       # Return to the previous UAT snapshot
@@ -284,6 +289,10 @@ db-restore-uat:
 # Drops the UAT snapshot DB if it exists.
 db-drop-uat-snapshot:
 	@echo "$$DB_SCRIPT_DROP_UAT_SNAPSHOT" | ssh $(DB_HOST) 'bash -s'
+
+# List all $DB_NAME_PROD related DBs
+db-list:
+	@echo "$$DB_SCRIPT_LIST_DBS" | ssh $(DB_HOST) 'bash -s'
 
 # Starts a local ipython REPL with the environment set up from .env end
 # optionally .env_local as included and then exported above.
