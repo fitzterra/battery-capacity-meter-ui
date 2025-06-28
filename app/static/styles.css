@@ -306,6 +306,13 @@ table th {
 }
 
 /**
+ * Calibration view
+ **/
+table.retest th,
+table.retest td {
+    text-align: left;
+}
+/**
  * Battery image capture functionality
  **/
 /*** The div used in the battery history view containing the current battery

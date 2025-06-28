@@ -1,0 +1,22 @@
+{% args retest %}
+<table data-name="retest" class="retest sortable">
+  <caption>
+    Batteries to retest with new Calibrations
+  </caption>
+  <thead>
+    <tr>
+      <th>Battery</th>
+      <th>Last BC</th>
+      <th>Last Test</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bat in retest %}
+    <tr>
+      <td><a href='/bat/{{ bat['bat_id'] }}/'>{{ bat['bat_id'] }}</a></td>
+      <td>{{ bat['bc_name'] }}</td>
+      <td>{{ bat['cap_date_str'] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
