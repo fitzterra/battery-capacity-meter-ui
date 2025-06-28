@@ -33,6 +33,8 @@ from app.models.data import (
     getBatteryHistory,
     getBatMeasurementByUID,
     getBatMeasurementPlotData,
+    bcCalibration,
+    needsReTesting,
     getLogs,
     delLogs,
 )
@@ -590,6 +592,46 @@ async def batMeasureUIDPlot(_, bat_id, uid, plot_ind):
     plot = getBatMeasurementPlotData(bat_id, uid, plot_ind)
 
     return plot
+
+
+@app.get("/calibration/")
+async def calibration(req):
+    """
+    View to display the BC calibration details.
+    """
+    res = bcCalibration()
+
+    content = Template("bc_calibration.html").render(res)
+
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
+    if req.headers.get("Hx-Request", "false") == "true":
+        return content
+
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
+    return _renderIndex(content)
+
+
+@app.get("/calibration/needs_retest/")
+async def retest(req):
+    """
+    Returns a list of any batteries that needs retesting if they have not been
+    tested again after the latest BC calibrations.
+    """
+    # Get a list of batteries that needs re testing
+    to_test = needsReTesting()
+
+    content = Template("retest_after_calib.html").render(to_test)
+
+    # If this is a direct HTMX request ('Hs-request' header == 'true') then we
+    # only refresh the target DOM element with the rendered template.
+    if req.headers.get("Hx-Request", "false") == "true":
+        return content
+
+    # This is not a direct HTMX request, so we it must an attempt to render the
+    # full URL, so we render the full site including the part template.
+    return _renderIndex(content)
 
 
 @app.get("/logs/")
