@@ -1,0 +1,114 @@
+{% args calib_dat %}
+<h3>Battery Controller (BC) Calibration information</h3>
+
+<table data-name="curr" class="sortable">
+  <caption>
+    Current Calibration
+  </caption>
+  <thead>
+    <tr>
+      <th style="text-align: left">BC</th>
+      <th>Last Capture Date</th>
+      <th>Charge Shunt</th>
+      <th>Discharge Shunt</th>
+      <th>Accuracy</th>
+      <th>Best</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bc in calib_dat['curr'] %}
+    <tr>
+      {% set best = calib_dat['best'][bc['bc_name']]['calib'] == (bc['c_shunt'],bc['d_shunt']) %}
+      <td style="text-align: left">{{ bc['bc_name'] }}</td>
+      <td>{{ bc['cap_date_trunc'] }}</td>
+      <td>{{ bc['c_shunt'] }}Ω</td>
+      <td>{{ bc['d_shunt'] }}</td>
+      <td>{{ bc['accuracy'] }}%</td>
+      <td style="text-align: center">{{ '&#x2705' if best else '&#x274c' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table data-name="hist" class="sortable">
+  <caption>
+    Previous Calibrations
+  </caption>
+  <thead>
+    <tr>
+      <th style="text-align: left">BC</th>
+      <th>Charge Shunt</th>
+      <th>Discharge Shunt</th>
+      <th>Calibration Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bc in calib_dat['hist'] %}
+    <tr>
+      <td style="text-align: left">{{ bc['bc_name'] }}</td>
+      <td>{{ bc['c_shunt'] }}Ω</td>
+      <td>{{ bc['d_shunt'] }}</td>
+      <td>{{ bc['calib_date'] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table data-name="accuracy" class="sortable">
+  <caption>
+    Calibration Accuracy Averages
+  </caption>
+  <thead>
+    <tr>
+      <th style="text-align: left">BC</th>
+      <th>Charge Shunt</th>
+      <th>Discharge Shunt</th>
+      <th>Accuracy</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bc in calib_dat['accuracy'] %}
+    <tr>
+      <td style="text-align: left">{{ bc['bc_name'] }}</td>
+      <td>{{ bc['c_shunt'] }}Ω</td>
+      <td>{{ bc['d_shunt'] }}Ω</td>
+      <td>{{ bc['avg_accuracy'] }}%</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table data-name="best" class="sortable">
+  <caption>
+    Best Calibrations
+  </caption>
+  <thead>
+    <tr>
+      <th style="text-align: left">BC</th>
+      <th>Charge Shunt</th>
+      <th>Discharge Shunt</th>
+      <th>Accuracy</th>
+      <th>Calib Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bc, dat in calib_dat['best'].items() %}
+    <tr>
+      <td style="text-align: left">{{ bc }}</td>
+      <td>{{ dat['calib'][0] }}Ω</td>
+      <td>{{ dat['calib'][1] }}Ω</td>
+      <td>{{ dat['accu'] }}%</td>
+      <td>{{ dat['date'] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="retest">
+  <button
+  <button
+    hx-get="needs_retest/"
+    hx-target="closest div"
+    hx-swap="innerHTML"
+  >Check for batteries to retest</button>
+</div>

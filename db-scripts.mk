@@ -130,3 +130,13 @@ define DB_SCRIPT_DROP_UAT_SNAPSHOT
   
   echo -e "$$OK Done."
 endef
+
+#--------------------
+# List all current $DB_NAME_PROD* DBs. This should show the prod and any UAT
+# and snapshot DB derived from $DB_NAME_PROD.
+#--------------------
+define DB_SCRIPT_LIST_DBS
+  set -e   # Exit on all errors
+  
+  psql -c '\l+ $(DB_NAME_PROD)*'
+endef

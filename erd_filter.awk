@@ -28,8 +28,8 @@
     # Set the extract flag
     extract=1
     # Print a markdown level one header and the start of the mermaid syntax
-    # marker
-    print "# Battery Capacity Meter ERD\n\n```mermaid"
+    # marker. We use printf to suppress printing a NL at the end of the line
+    printf "# Battery Capacity Meter ERD\n\n```mermaid"
     # Skip this line
     next
 }
