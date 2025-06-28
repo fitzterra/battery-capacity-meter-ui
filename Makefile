@@ -35,6 +35,12 @@ APP_DOC_DIR=doc/app-docs
 # `img` dir in the man `doc` dir.
 DOC_IMG_LINK=$(APP_DOC_DIR)/img
 
+# This is the docker image we use for the mermaid cli.
+# NOTE: This docker image is HUGE - feel free to delete it if space gets tight:
+# docker image rm $MM_CLI_DOCKER
+# See: https://github.com/mermaid-js/mermaid-cli?tab=readme-ov-file#alternative-installations
+MM_CLI_DOCKER=ghcr.io/mermaid-js/mermaid-cli/mermaid-cli
+
 .PHONY: \
 	help \
 	dev-setup \
@@ -262,7 +268,11 @@ gen-erd:
 	@eralchemy -i postgresql://$(DB_USER):$(DB_PASS)@$(DB_HOST)/$(DB_NAME) \
 		-m mermaid_er --title "Battery Capacity Meter UI ERD" -o /tmp/_erd.md && \
 		./erd_filter.awk /tmp/_erd.md > doc/ERD.md && \
-		rm -f /tmp_erd.md
+		rm -f /tmp_erd.md && \
+		docker run --rm -u `id -u`:`id -g` -v ${PWD}/doc:/data $(MM_CLI_DOCKER) -i ERD.md -e png && \
+		mv doc/ERD.md-1.png doc/img/ERD.png && \
+		echo -e "Done\n\n" && \
+		echo "You can remove the Mermaid CLI Docker image with:\n\n  docker image rm $(MM_CLI_DOCKER)\n"
 
 # Connects to the DB using pgcli
 # This relies on the DB_??? settings to be in the environment

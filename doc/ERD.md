@@ -1,7 +1,6 @@
 # Battery Capacity Meter ERD
 
 ```mermaid
-
 ---
 title: Battery Capacity Meter UI ERD
 ---
