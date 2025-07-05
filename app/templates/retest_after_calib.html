@@ -6,7 +6,6 @@
   <thead>
     <tr>
       <th>Battery</th>
-      <th>Last BC</th>
       <th>Last Test</th>
     </tr>
   </thead>
@@ -14,8 +13,7 @@
     {% for bat in retest %}
     <tr>
       <td><a href='/bat/{{ bat['bat_id'] }}/'>{{ bat['bat_id'] }}</a></td>
-      <td>{{ bat['bc_name'] }}</td>
-      <td>{{ bat['cap_date_str'] }}</td>
+      <td>{{ bat['cap_date'] }}</td>
     </tr>
     {% endfor %}
   </tbody>

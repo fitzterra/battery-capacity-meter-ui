@@ -16,7 +16,7 @@
       <tr>
         <td>
         {% if e['bat_id'] %}
-          <a href="bat_id/{{ e['bat_id'] }}/">{{ e['bat_id'] }}</a>
+          <a href="{{ e['bat_id'] }}/">{{ e['bat_id'] }}</a>
         {% else %}
           {% set showDel = True %}
         {% endif %}
