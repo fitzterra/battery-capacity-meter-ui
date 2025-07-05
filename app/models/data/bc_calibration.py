@@ -12,7 +12,7 @@ from peewee import fn
 
 from app.utils import datesToStrings
 
-from ..models import db, BatCapHistory
+from ..models import db, BatCapHistory, Battery
 
 logger = logging.getLogger(__name__)
 
@@ -140,43 +140,32 @@ def bcCalibration(
 
         # Historic calibration?
         if hist:
-            # This is the raw SQL:
-            #
-            #    SELECT
-            #      bc_name,
-            #      per_dch->'ch'->>'shunt' AS c_shunt,
-            #      per_dch->'dch'->>'shunt' AS d_shunt,
-            #      date_trunc('second', MIN(cap_date)) AS calib_date
-            #    FROM bat_cap_history
-            #    GROUP BY
-            #      bc_name,
-            #      per_dch->'ch'->>'shunt',
-            #      per_dch->'dch'->>'shunt'
-            #    ORDER BY
-            #      bc_name,
-            #      calib_date desc;
-
-            query = (
-                BatCapHistory.select(
-                    BatCapHistory.bc_name,
-                    c_shunt_expr.alias("c_shunt"),
-                    d_shunt_expr.alias("d_shunt"),
-                    fn.date_trunc("second", fn.MIN(BatCapHistory.cap_date)).alias(
-                        "calib_date"
-                    ),
+            query = BatCapHistory.raw(
+                """
+                WITH shunt_data AS (
+                  SELECT
+                    bc_name,
+                    per_dch->'ch'->>'shunt' AS c_shunt,
+                    per_dch->'dch'->>'shunt' AS d_shunt,
+                    date_trunc('second', cap_date) AS calib_date,
+                    LAG(per_dch->'ch'->>'shunt') OVER (PARTITION BY bc_name ORDER BY cap_date) AS prev_c_shunt,
+                    LAG(per_dch->'dch'->>'shunt') OVER (PARTITION BY bc_name ORDER BY cap_date) AS prev_d_shunt
+                  FROM bat_cap_history
                 )
-                .group_by(
-                    BatCapHistory.bc_name,
-                    c_shunt_expr,
-                    d_shunt_expr,
-                )
-                .order_by(
-                    BatCapHistory.bc_name,
-                    fn.date_trunc("second", fn.MIN(BatCapHistory.cap_date)).desc(),
-                )
+                SELECT
+                  bc_name,
+                  c_shunt,
+                  d_shunt,
+                  calib_date
+                FROM shunt_data
+                WHERE
+                  c_shunt IS DISTINCT FROM prev_c_shunt
+                  OR d_shunt IS DISTINCT FROM prev_d_shunt
+                ORDER BY
+                  bc_name,
+                  calib_date DESC
+            """
             )
-
-            # Add it to res, converting dates if needed
             res["hist"] = [
                 bc if raw_dates else datesToStrings(bc) for bc in query.dicts()
             ]
@@ -244,19 +233,20 @@ def bcCalibration(
     return res
 
 
-def needsReTesting() -> list[dict]:
+def needsReTesting(raw_dates: bool = False) -> list[dict]:
     """
     Determines which batteries needs to be retested after BC recalibration.
 
     The `bcCalibration` call returns the ``best`` calibrations per BC where the
-    accuracy was the highest. For each of these best calibration entries, it
-    also return the date the calibration for that BC was made.
+    accuracy was the highest.
 
-    By looking at the last measurement made for each battery, and comparing the
-    date it was made with the calibration date for BC the measurement was made
-    on, we can deduce that if the measurement date is before the calibration
-    date, the battery needs to be retested. This is because a better
-    calibration was made after the last test.
+    This functions takes this best accuracy list and looks for any history
+    entries where the battery was NOT tested on any BC with it's most accurate
+    calibration.
+
+    Args:
+        raw_dates: True to return dates as datetime, False to return them
+            as strings.
 
     Returns:
         A list of battery entries that needs retesting:
@@ -266,13 +256,16 @@ def needsReTesting() -> list[dict]:
             [
                 {
                     'bat_id': '2025012601',
-                    'bc_name': 'BC0',
-                    'cap_date_str': '2025-01-26 13:34:00'
+                    'cap_date': '2025-01-26 13:34:00' or datetime
                 },
                 ...
             ]
     """
-    # Get the list of dates each BC was calibrated for `best` accuracy
+    # Define JSON expressions to grap the shunts from the `per_dch` JSON struct
+    c_shunt_expr = fn.json_extract_path_text(BatCapHistory.per_dch, "ch", "shunt")
+    d_shunt_expr = fn.json_extract_path_text(BatCapHistory.per_dch, "dch", "shunt")
+
+    # Get the list of best accuracy BC calibrations
     bc_acc = bcCalibration(
         curr=False,
         hist=True,
@@ -280,40 +273,30 @@ def needsReTesting() -> list[dict]:
         raw_dates=False,
     )["best"]
 
-    # Get the last measure per battery and BC.
-    # Peewee does not seem to support the PG
-    #   SELECT DISTINCT ON (column)
-    # which means it will be more complex to make sure we get only the
-    # distinct BCs for the most recent capture date.
-    # For this reason, we will use a raw query.
-    # NOTE: We also convert the cap_date to a string because it will make it
-    # easier to compare against the BC calibaration dates which we currently
-    # expect to come in as strings.
-    query = BatCapHistory.raw(
-        """
-        SELECT *
-        FROM (
-            SELECT DISTINCT ON (h.battery_id)
-                b.bat_id,
-                h.bc_name,
-                to_char(h.cap_date, 'YYYY-MM-DD HH24:MI:SS') as cap_date_str
-            FROM bat_cap_history h
-                inner join battery b on b.id = h.battery_id
-            ORDER BY
-                h.battery_id, h.cap_date DESC
-            ) AS last_test_by_date
-        ORDER BY bat_id ASC
-    """
-    )
-
     with db.connection_context():
-        # Now we go over each last capture entry, check the capture date against
-        # the calibration date for that BC. If the BC calibration date is after the
-        # capture date, the Battery probably needs retesting
-        retest = [
-            bat
-            for bat in query.dicts()
-            if bat["cap_date_str"] < bc_acc[bat["bc_name"]]["date"]
-        ]
+
+        # Get all batteries measured with any best calibration
+        good_ids = set()
+        for bc, dat in bc_acc.items():
+            c_shunt, d_shunt = dat["calib"]
+            q = (
+                BatCapHistory.select(BatCapHistory.battery)
+                .where(
+                    (BatCapHistory.bc_name == bc)
+                    & (c_shunt_expr == c_shunt)
+                    & (d_shunt_expr == d_shunt)
+                )
+                .distinct()
+            )
+            good_ids.update(b.battery_id for b in q)
+
+        # Get all Batteries that have not bee measured with a best calibrated
+        # BC and needs retesting
+        query = Battery.select(Battery.bat_id, Battery.cap_date).where(
+            Battery.id.not_in(good_ids)
+        )
+
+        # Convert to list and dates to strings if needed
+        retest = [bat if raw_dates else datesToStrings(bat) for bat in query.dicts()]
 
     return retest

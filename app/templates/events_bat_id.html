@@ -18,7 +18,10 @@
         <td>{{ e['state'] }}</td>
         <td>
         {% if e['soc_uid'] %}
-        <a href="/events/measure/{{ bat_id }}/{{ e['soc_uid'] }}/">{{ e['soc_uid'] }}</a>
+        <a
+          href="{{ e['soc_uid'] }}/measure/"
+          hx-push-url="false"
+        >{{ e['soc_uid'] }}</a>
         {% endif %}
         </td>
         <td>{{ e['soc_state'] }}</td>

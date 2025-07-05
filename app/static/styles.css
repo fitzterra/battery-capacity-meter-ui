@@ -215,23 +215,6 @@ div.welcome{
     text-align: left;
 }
 
-/* Article used for showing an error. */
-article.err {
-	background-color: var(--pico-color-pink-850);
-	text-align: center;
-	border-radius: var(--pico-border-radius);
-}
-
-article.err header {
-	background-color: var(--pico-color-red-450);
-	font-weight: bold;
-	padding: 0.2rem;
-	font-size: larger;
-	border-radius: var(--pico-border-radius) var(--pico-border-radius) 0% 0%;
-	margin-bottom: 1rem;
-	border-bottom: 0px;
-}
-
 /* Article for showing a success result */
 article.success {
 	background-color: var(--pico-color-green-850);

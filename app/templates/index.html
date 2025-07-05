@@ -130,7 +130,40 @@
               This is where you can view all known measured batteries.
               <br>
               For each battery you will be able to view all linked measurement
-              cycles, plot graphs of the measure events, etc.
+              cycles, plot graphs of the measure events, view and add an image
+              for the battery, etc.
+            </article>
+
+            <article>
+              <header><strong>BC Calibration</strong></header>
+              <p>
+                This will allow viewing all calibration info for all known
+                <strong>Battery Controllers</strong> (BCs).
+              </p>
+
+              <p>
+                A <strong>BC</strong> is calibrated by adjusting the shunt
+                resistor values used for measuring the charge and discharge
+                current. These measured currents are the basis for measuring
+                the battery capacity. The more accurate the shunt calibrations,
+                the more accurate the capacity measurements will be.
+              </p>
+
+              <p>
+                There are different factors that influences the current flow
+                which means that the shunt values for charge and discharge will
+                be different, but the important thing is that if they are
+                calibrated correctly, the current flowing and the current
+                measured during charge or discharge will be accurate.
+              </p>
+              <p>
+                Once this is achieved, it means that the amount of charge
+                measured for both charge and discharge cycles should be very
+                close. The difference between the charge and discharge measures
+                are used to calculate the overall BC calibration accuracy. The
+                closer these values are, the closer to 100% the accuracy value
+                will be.
+              </p>
             </article>
 
             <article>
@@ -148,7 +181,9 @@
             <article>
               <header><strong>Search</strong></header>
               Search for any Battery by ID using the search box in the top
-              header.
+              header. The ID could be typed, or the scanner can be used to scan
+              the battery ID label and OCR will then try to recognise the ID
+              from the label and auto search for the battery.
               <br/>
               This will also find all entries where the search string only
               matches part of the ID.

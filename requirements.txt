@@ -22,8 +22,3 @@ pillow==11.2.1
 # changes.
 # TODO: find a way to only install in a dev environment and not prod
 watchfiles==1.0.5
-
-# This is deprecated and will be removed in the next release. See config.py.
-## -- Environment --
-#python-dotenv==1.0.1
-

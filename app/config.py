@@ -17,21 +17,6 @@ from typing import Any
 
 from pathlib import Path
 
-# TODO: This should not be needed anymore - deprecated unless we pick up issues.
-#      To be removed in a futrue version.
-# import dotenv
-
-# # This is only needed while developing. We load the environment from the
-# # .env file one level up from the app dir. While developing this file is
-# # available directly, but in prod it will not be, and all environment files
-# # will be passed in from the docker compose that will read the prod .env file.
-# try:
-#     if not dotenv.load_dotenv():
-#         print("ERROR: No .env file found to load. Using default env/configs.")
-# except Exception as exc:
-#     print(f"Error loading environment: {exc}")
-# -- END: deprecated
-
 # We set logging up as early as possible. If there is an APP_LOGLEVEL
 # environment variable, we expect it to be "DEBUG", "INFO", etc. If this is a
 # valid log level we will set to that level, else fall back to INFO
