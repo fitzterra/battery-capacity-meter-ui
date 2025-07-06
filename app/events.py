@@ -74,8 +74,8 @@ async def cleanDanglingEvents(req):
     return "success", 200, {"HX-Redirect": f"{BASE_URL}/"}
 
 
-@events.get("/<int:bat_id>/")
-async def batEvents(req, bat_id: int):
+@events.get("/<bat_id>/")
+async def batEvents(req, bat_id):
     """
     Returns all battery events....
     """
@@ -95,8 +95,8 @@ async def batEvents(req, bat_id: int):
     return renderIndex(content)
 
 
-@events.get("/<int:bat_id>/del_events")
-async def delBatEvents(req, bat_id: int):
+@events.get("/<bat_id>/del_events")
+async def delBatEvents(req, bat_id):
     """
     Deletes all unallocated events for this battery....
     """
@@ -117,8 +117,8 @@ async def delBatEvents(req, bat_id: int):
     return "success", 200, {"HX-Redirect": f"{BASE_URL}/"}
 
 
-@events.get("/<int:bat_id>/del_extra/<soc_id>")
-async def delExtraEvent(req, bat_id: int, soc_id):
+@events.get("/<bat_id>/del_extra/<soc_id>")
+async def delExtraEvent(req, bat_id, soc_id):
     """
     Deletes extra "Charging" event that stops us from record a battery
     measurement by UID.
@@ -155,8 +155,8 @@ async def delExtraEvent(req, bat_id: int, soc_id):
     return redirect(f"{BASE_URL}/{bat_id}/")
 
 
-@events.get("/<int:bat_id>/<uid>/measure/")
-async def uidEvents(req, bat_id: int, uid):
+@events.get("/<bat_id>/<uid>/measure/")
+async def uidEvents(req, bat_id, uid):
     """
     Returns all battery uid events....
     """
@@ -180,8 +180,8 @@ async def uidEvents(req, bat_id: int, uid):
     return renderIndex(content)
 
 
-@events.get("/<int:bat_id>/<uid>/measure/set_history")
-async def setUIDHistory(req, bat_id: int, uid):
+@events.get("/<bat_id>/<uid>/measure/set_history")
+async def setUIDHistory(req, bat_id, uid):
     """
     Set the UID events as history events...
     """
@@ -202,8 +202,8 @@ async def setUIDHistory(req, bat_id: int, uid):
     return "success", 200, {"HX-Redirect": f"/bat/{bat_id}/{uid}/"}
 
 
-@events.get("/<int:bat_id>/<uid>/measure/del_history")
-async def delUIDEvents(req, bat_id: int, uid):
+@events.get("/<bat_id>/<uid>/measure/del_history")
+async def delUIDEvents(req, bat_id, uid):
     """
     Deletes the UID events...
     """
