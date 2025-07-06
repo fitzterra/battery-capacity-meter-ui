@@ -127,7 +127,7 @@ async def batteries(req):
     return renderIndex(content)
 
 
-@bat.get("/<int:bat_id>/")
+@bat.get("/<bat_id>/")
 async def batHistory(req, bat_id):
     """
     Generates the `Battery` details and measurements history view.
@@ -314,7 +314,7 @@ async def batImageSet(req, bat_id):
     return "Image updated", 200
 
 
-@bat.get("/<int:bat_id>/<uid>/")
+@bat.get("/<bat_id>/<uid>/")
 async def batMeasureUID(req, bat_id, uid):
     """
     Generates the `Battery` measurement details for a specific measurement UID
