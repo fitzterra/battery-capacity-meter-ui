@@ -65,6 +65,7 @@ MM_CLI_DOCKER=ghcr.io/mermaid-js/mermaid-cli/mermaid-cli
 	rem-repl \
 	shell \
 	compose-conf \
+	mr \
 	show-env \
 
 
@@ -109,6 +110,8 @@ db-list       - Lists all $(DB_NAME_PROD) related DBs. Needs SSH access to $(DB_
 repl          - Starts a local ipython REPL with the environment set up from .env .env_local
 rem-repl      - Starts REPL in container after installing ipython if not already installed
 shell         - Runs bash inside the container
+mr            - Generates a gitlab MR for the current branch.
+                Requires glab (GitLab CLI client) to be installed and set up for repo access
 show-env      - Shows the full environment the Makefile sees
 docs          - Builds the documentation via pydoctor.
 gen-erd       - Generates an ERD from the database into doc/ERD.md
@@ -323,6 +326,16 @@ shell:
 ## Shows the compose config
 compose-conf:
 	@docker-compose config
+
+## Creates an MR for the current branch if not on the UAT or main branches
+mr:
+	@branch_name=$$(git branch --show-current); \
+	if [[ $$branch_name =~ ^UAT|main$$ ]]; then \
+	  echo -e "\nCan not create an MR on the UAT or main branch."; \
+	  echo -e "Please create a feature branch first.\n"; \
+	  exit 1; \
+	fi; \
+	glab mr create --squash-before-merge --remove-source-branch
 
 ## Shows the full environment the Makefile sees
 show-env:
