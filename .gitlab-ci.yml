@@ -36,7 +36,9 @@ pages:
   script:
     - make docs
     - mkdir -p public
-    - cp -r doc/app-docs/* public/
+    # We use the -L here to the files pointed to by symlinks and not the
+    # symlinks only
+    - cp -Lr doc/app-docs/* public/
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
       when: always
