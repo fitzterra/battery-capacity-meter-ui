@@ -6,6 +6,7 @@
         <tr>
             <th>Time</th>
             <th>State</th>
+            <th>BC</th>
             <th>SoC UID</th>
             <th>SOC State</th>
             <th>Events</th>
@@ -16,6 +17,7 @@
       <tr>
         <td>{{ e['event_time'] }}</td>
         <td>{{ e['state'] }}</td>
+        <td>{{ e['bc_name'] }}</td>
         <td>
         {% if e['soc_uid'] %}
         <a
