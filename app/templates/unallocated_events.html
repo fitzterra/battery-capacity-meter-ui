@@ -7,6 +7,7 @@
     <tr>
       <th>Battery ID</th>
       <th>Date</th>
+      <th>BC</th>
       <th>Events</th>
     </tr>
   </thead>
@@ -22,6 +23,7 @@
         {% endif %}
         </td>
         <td>{{ e['date'] }}</td>
+        <td>{{ e['bc_name'] }}</td>
         <td>{{ e['events'] }}</td>
       </tr>
     {% endfor %}
@@ -29,7 +31,7 @@
   {% if showDel %}
   <tfoot>
     <tr>
-      <td colspan="3">
+      <td colspan="4">
         <div class="grid" style="margin: 1rem;">
           <button
             class="bad-action outline contrast"
