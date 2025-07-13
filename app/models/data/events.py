@@ -33,10 +33,9 @@ def getUnallocatedEvents(raw_dates: bool = False) -> Iterable[dict]:
         {
             'bat_id': '2025030801',
             'date': '2025-03-08',
-
             # Or, if raw_dates is True
             # 'date': datetime.date(2025, 3, 8),
-
+            'bc_name': 'BC2',
             'events': 3607
         }
 
@@ -57,10 +56,11 @@ def getUnallocatedEvents(raw_dates: bool = False) -> Iterable[dict]:
             SoCEvent.select(
                 SoCEvent.bat_id,
                 fn.DATE(fn.MIN(SoCEvent.created)).alias("date"),
+                SoCEvent.bc_name,
                 fn.SUM(1).alias("events"),
             )
             .where(SoCEvent.bat_history == None)  # pylint: disable=singleton-comparison
-            .group_by(SoCEvent.bat_id)
+            .group_by(SoCEvent.bat_id, SoCEvent.bc_name)
             .order_by(SoCEvent.bat_id)
         )
 
@@ -130,6 +130,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
             created,
             bat_id,
             state,
+            bc_name,
             soc_uid,
             soc_state,
             ROW_NUMBER() OVER (PARTITION BY bat_id ORDER BY created)
@@ -137,7 +138,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
         FROM
             soc_event
         WHERE
-            bat_id = '<battery_id>' AND bat_history is NULL
+            bat_id = '<battery_id>' AND bat_history_id is NULL
         )
         SELECT
             MIN(id) AS id_start, -- The id of the first event in the group
@@ -145,6 +146,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
             MIN(created) AS event_time, -- The first occurrence in each group
             bat_id,
             state,
+            bc_name,
             soc_uid,
             soc_state,
             COUNT(*) AS event_count -- The number of events in each group
@@ -157,22 +159,22 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
 
     The result from this query may look like this::
 
-        +-------+-------+----------------------------+------------+-------------+----------+----------------+-------------+
-        | id_st | id_en | event_time                 | bat_id     | state       | soc_uid  | soc_state      | event_count |
-        |-------+-------+----------------------------+------------+-------------+----------+----------------+-------------|
-        | 34521 | 34523 | 2025-02-04 16:12:44.966774 | 2025020401 | Battery+ID  | <null>   | <null>         | 3           |
-        | 34524 | 36841 | 2025-02-04 16:12:48.348954 | 2025020401 | Charging    | e30cfb16 | Initial Charge | 2318        |
-        | 36841 | 36842 | 2025-02-04 16:57:24.931618 | 2025020401 | Charged     | e30cfb16 | Resting        | 1           |
-        | .     | .     | 2025-02-04 17:02:25.528027 | 2025020401 | Discharging | e30cfb16 | Discharging    | 13827       |
-        | .     | .     | 2025-02-04 21:28:29.135872 | 2025020401 | Discharged  | e30cfb16 | Resting        | 1           |
-        | .     | .     | 2025-02-04 21:33:06.881902 | 2025020401 | Charging    | e30cfb16 | Charging       | 15623       |
-        | .     | .     | 2025-02-05 02:33:35.720401 | 2025020401 | Charged     | e30cfb16 | Resting        | 1           |
-        | .     | .     | 2025-02-05 02:38:35.495934 | 2025020401 | Discharging | e30cfb16 | Discharging    | 13781       |
-        | .     | .     | 2025-02-05 07:03:43.768603 | 2025020401 | Discharged  | e30cfb16 | Resting        | 1           |
-        | .     | .     | 2025-02-05 07:06:44.319853 | 2025020401 | Charging    | e30cfb16 | Charging       | 14055       |
-        | .     | .     | 2025-02-05 11:37:05.163452 | 2025020401 | Charged     | e30cfb16 | Completed      | 1           |
-        | .     | .     | 2025-02-05 17:12:14.572511 | 2025020401 | Yanked      | <null>   | <null>         | 1           |
-        +-------+-------+----------------------------+------------+-------------+----------+----------------+-------------+
+        +-------+-------+----------------------------+------------+-------------+---------+----------+----------------+-------------+
+        | id_st | id_en | event_time                 | bat_id     | state       | bc_name | soc_uid  | soc_state      | event_count |
+        |-------+-------+----------------------------+------------+-------------+---------+----------+----------------+-------------|
+        | 34521 | 34523 | 2025-02-04 16:12:44.966774 | 2025020401 | Battery+ID  | BC2     | <null>   | <null>         | 3           |
+        | 34524 | 36841 | 2025-02-04 16:12:48.348954 | 2025020401 | Charging    | BC2     | e30cfb16 | Initial Charge | 2318        |
+        | 36841 | 36842 | 2025-02-04 16:57:24.931618 | 2025020401 | Charged     | BC2     | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-04 17:02:25.528027 | 2025020401 | Discharging | BC2     | e30cfb16 | Discharging    | 13827       |
+        | .     | .     | 2025-02-04 21:28:29.135872 | 2025020401 | Discharged  | BC2     | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-04 21:33:06.881902 | 2025020401 | Charging    | BC2     | e30cfb16 | Charging       | 15623       |
+        | .     | .     | 2025-02-05 02:33:35.720401 | 2025020401 | Charged     | BC2     | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-05 02:38:35.495934 | 2025020401 | Discharging | BC2     | e30cfb16 | Discharging    | 13781       |
+        | .     | .     | 2025-02-05 07:03:43.768603 | 2025020401 | Discharged  | BC2     | e30cfb16 | Resting        | 1           |
+        | .     | .     | 2025-02-05 07:06:44.319853 | 2025020401 | Charging    | BC2     | e30cfb16 | Charging       | 14055       |
+        | .     | .     | 2025-02-05 11:37:05.163452 | 2025020401 | Charged     | BC2     | e30cfb16 | Completed      | 1           |
+        | .     | .     | 2025-02-05 17:12:14.572511 | 2025020401 | Yanked      | BC2     | <null>   | <null>         | 1           |
+        +-------+-------+----------------------------+------------+-------------+---------+----------+----------------+-------------+
 
     ... and will yield the following list of dicts::
 
@@ -182,6 +184,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
                 'id_end': 34523,
                 'event_time': datetime.datetime(2025, 2, 4, 16, 12, 44, 966774),
                 'bat_id': '2025020401',
+                'bc_name': 'BC2',
                 'state': 'Battery+ID',
                 'soc_uid': None,
                 'soc_state': None,
@@ -196,6 +199,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
                 'id_end': ...,
                 'event_time': "2025-02-05 17:12:14"),
                 'bat_id': '2025020401',
+                'bc_name': 'BC2',
                 'state': 'Yanked',
                 'soc_uid': None,
                 'soc_state': None,
@@ -217,6 +221,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
         # Aliases for clarity
         created = SoCEvent.created
         bat_id = SoCEvent.bat_id
+        bc_name = SoCEvent.bc_name
         state = SoCEvent.state
         soc_uid = SoCEvent.soc_uid
         soc_state = SoCEvent.soc_state
@@ -236,6 +241,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
                 created,
                 bat_id,
                 state,
+                bc_name,
                 soc_uid,
                 soc_state,
                 (row_number_bat - row_number_bat_state).alias("grp"),
@@ -255,6 +261,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
                 fn.MIN(consecutive_events.c.created).alias("event_time"),
                 consecutive_events.c.bat_id,
                 consecutive_events.c.state,
+                consecutive_events.c.bc_name,
                 consecutive_events.c.soc_uid,
                 consecutive_events.c.soc_state,
                 fn.COUNT("*").alias("event_count"),
@@ -263,6 +270,7 @@ def getBatUnallocSummary(battery_id: str, raw_dates: bool = False) -> Iterable[d
             .group_by(
                 consecutive_events.c.bat_id,
                 consecutive_events.c.state,
+                consecutive_events.c.bc_name,
                 consecutive_events.c.soc_uid,
                 consecutive_events.c.soc_state,
                 consecutive_events.c.grp,
