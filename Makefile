@@ -1,4 +1,4 @@
-# Make sure we use bash as the shell.
+	# Make sure we use bash as the shell.
 SHELL := /usr/bin/env bash
 
 # All these variables needs to be set from the .env and or .env_local files
@@ -34,7 +34,7 @@ MERGED_ENV=/tmp/$(DEPLOY_NAME).env
 # Change this so that we deploy the compose file and environment and manage the
 # compose file and environment in this repo.
 PROD_COMPOSE_DIR = ~/docker-cfg/bat-cap-ui
-PROD_RUNTIME_ENV = $(PROD_COMPOSE_DIR)/.env_local
+PROD_RUNTIME_ENV = $(PROD_COMPOSE_DIR)/.env
 
 ### These are for the doc generation using pydoctor
 # The html output path for the docs
@@ -180,6 +180,12 @@ deploy:
 	@scp $(MERGED_ENV) $(DEPLOY_USER)@$(DEPLOY_HOST):$(PROD_RUNTIME_ENV)
 	@# When this is done, we do not need $(MERGED_ENV) anymore
 	@rm -f $(MERGED_ENV)
+	
+	@echo "Setting runtime UID and GID into $(PROD_RUNTIME_ENV) on target host..."
+	@ssh $(DEPLOY_USER)@$(DEPLOY_HOST) "\
+		echo UID=$$(id -u) >> $(PROD_RUNTIME_ENV) && \
+		echo GID=$$(id -g) >> $(PROD_RUNTIME_ENV) \
+	"
 	
 	@echo "Running deploy.py (migrations)..."
 	@ssh $(DEPLOY_USER)@$(DEPLOY_HOST) "\
