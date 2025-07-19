@@ -27,6 +27,14 @@ DEPLOY_NAME=
 # be SCPd to the deployment host where it will be used as the docker
 # environment for the app.
 MERGED_ENV=/tmp/$(DEPLOY_NAME).env
+# This is the compose config dir on the remote production host.
+# TODO: Currently, the compose config dir on the remote is disconnected from
+# the main add due to that compose config dir not being managed and versioned
+# by this repo.
+# Change this so that we deploy the compose file and environment and manage the
+# compose file and environment in this repo.
+PROD_COMPOSE_DIR = ~/docker-cfg/bat-cap-ui
+PROD_RUNTIME_ENV = $(PROD_COMPOSE_DIR)/.env_local
 
 ### These are for the doc generation using pydoctor
 # The html output path for the docs
@@ -153,7 +161,7 @@ image:
 # The deploy host only has SSH access and can run docker images.
 # Since our docker image needs it's full config to be supplied in the
 # environment when it is started, we have to supply the docker --env-file arg
-# pointing to a full environment file.
+# pointing to a full environment file and/or make sure that any 
 # This environment file is make up from .env with .env_local overriding the
 # versioned .env default values (.env_local is not versioned)
 # For deployment, .env_local will be created by the GitLab CI pipeline from all
@@ -165,23 +173,27 @@ image:
 # container is up.
 deploy:
 	@[[ -f .env && -f .env_local ]] || { echo ".env and .env_local is required"; exit 1; }
-	@echo "Merging .env and .env_local..."
-	@cat .env .env_local 2>/dev/null | grep -E '^[a-zA-Z0-9._]+=' > $(MERGED_ENV)
-	@echo "Deploying version $(VERSION) to $(DEPLOY_HOST)..."
-	@scp $(MERGED_ENV) $(DEPLOY_USER)@$(DEPLOY_HOST):$(MERGED_ENV)
+	@echo "Merging .env and .env_local to $(MERGED_ENV)..."
+	@cat .env .env_local | grep -E '^[a-zA-Z0-9._]+=' > $(MERGED_ENV)
+	
+	@echo "Copying $(MERGED_ENV) to $(PROD_RUNTIME_ENV) on target host..."
+	@scp $(MERGED_ENV) $(DEPLOY_USER)@$(DEPLOY_HOST):$(PROD_RUNTIME_ENV)
+	@# When this is done, we do not need $(MERGED_ENV) anymore
 	@rm -f $(MERGED_ENV)
+	
+	@echo "Running deploy.py (migrations)..."
 	@ssh $(DEPLOY_USER)@$(DEPLOY_HOST) "\
-		docker pull $(REGISTRY)/$(IMAGE_NAME):$(VERSION) && \
-		docker stop $(DEPLOY_NAME) || true && \
-		docker rm $(DEPLOY_NAME) || true && \
-		docker run --rm --env-file $(MERGED_ENV) \
-			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) \
-			python deploy.py && \
-		docker run -d --name $(DEPLOY_NAME) --env-file $(MERGED_ENV) \
-			-p $(DEPLOY_PORT):$(APP_PORT) \
-			$(REGISTRY)/$(IMAGE_NAME):$(VERSION) $(IMAGE) && \
-		rm -f $(MERGED_ENV) \
-		"
+		docker pull $(REGISTRY)/$(IMAGE_NAME):latest && \
+		docker run --rm --env-file $(PROD_RUNTIME_ENV) \
+			$(REGISTRY)/$(IMAGE_NAME):latest python deploy.py \
+	"
+	
+	@echo "Starting service using Compose..."
+	@ssh $(DEPLOY_USER)@$(DEPLOY_HOST) "\
+		cd $(PROD_COMPOSE_DIR) && \
+		docker compose up -d \
+	"
+
 # Tests the production deployment script - including migrations.
 # The flow should be something line this:
 # $ make db-snapshot-uat   # Make a snapshot of UAT if needed
