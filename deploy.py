@@ -4,6 +4,7 @@ Script to run for each deployment.
 
 This script current does the following:
     * Run any migrations for this version
+    * Manage manual indexes
     * Pre-compile all HTML templates.
 """
 
@@ -13,6 +14,7 @@ import logging
 import importlib.util
 
 
+from app.models.models import db
 from app.config import VERSION
 from compile_templates import comp
 
@@ -25,6 +27,18 @@ VERSION = os.environ.get("VERSION", VERSION)
 # Allow dry runs by looking for a DRY_RUN env var with any of the values in the
 # list below. Any other values or no DR_RUN env var will not do a dry run.
 DRY_RUN = os.environ.get("DRY_RUN", False) in ["true", "True", "1", "yes"]
+
+# Any indexes that needs to be created post the table creation can be added to
+# this list.
+# This is mainly ONLY needed for indexes that can not be specified using
+# Peewee's index definitions.
+MANAGED_INDEXES = [
+    # This is for the `soc_event` model to create an index on ``bc_name`` and
+    # ``id`` but with ``id`` ordered in descending order. This can not be
+    # defined using Peewee syntax currently. This index is used by the
+    # `bcm_view` endpoint
+    "CREATE INDEX IF NOT EXISTS idx_bcname_id_desc ON soc_event (bc_name, id DESC)",
+]
 
 
 def importFromPath(module_name, file_path):
@@ -90,12 +104,41 @@ def migrate(dry_run: bool = DRY_RUN):
         sys.exit(1)
 
 
+def indexManager(dry_run: bool = DRY_RUN):
+    """
+    Manages table indexes that are created post table creation, or for indexes
+    that are not easily created by Peewee.
+
+    This will be run from `main` after `migrate` was run. It will run each of
+    the index statements in the `MANAGED_INDEXES` list.
+
+    Args:
+        dry_run: True if in dry-run mode, False otherwise. In dry-run mode, the
+        SQL is not executed, although it will be logged.
+    """
+    logger.info("Managing external indexes...")
+
+    db.connect()
+    with db.atomic():
+        for sql in MANAGED_INDEXES:
+            prefix = "Simulating (dry-run)" if dry_run else "Running"
+            logger.info("   %s: %s", prefix, sql)
+
+            if dry_run:
+                continue
+
+            db.execute_sql(sql)
+
+
 def main():
     """
     Main deployment entry point
     """
     # First migrations
     migrate()
+
+    # Then any managed indexes
+    indexManager(DRY_RUN)
 
     # Then the template compiles
     if not comp(logger, DRY_RUN):
