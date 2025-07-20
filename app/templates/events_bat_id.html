@@ -28,7 +28,7 @@
         </td>
         <td>{{ e['soc_state'] }}</td>
         <td>
-          {{ e['event_count'] }}
+          <span title="Last event ID: {{e['id_end']}}">{{ e['event_count'] }}</span>
           {% if e['event_count'] == 1 and e['soc_state'] == "Charging" %}
           <!-- There are at times an additional stray "Charge" event at the end
             of a measurement cycle. This throws the count of event groups out

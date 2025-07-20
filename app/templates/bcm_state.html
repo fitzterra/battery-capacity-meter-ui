@@ -1,0 +1,81 @@
+{% args state_dat %}
+<h3>BCM State</h3>
+
+<table class="sortable active">
+  <caption>
+    Active BCs
+  </caption>
+  <thead>
+    <tr>
+      <th style="text-align: left">BC</th>
+      <th>Timestamp</th>
+      <th>State</th>
+      <th>Battery ID</th>
+      <th>Voltage</th>
+      <th>Current</th>
+      <th>mAh</th>
+      <th>Period</th>
+      <th>SoC State</th>
+      <th>SoC UID</th>
+      <th>Cycle</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bc in state_dat['active'] %}
+    <tr>
+      {% set cycle = f"{bc['soc_cycle']}/{bc['soc_cycles']}" if bc['soc_cycles'] else '' %}
+      <td style="text-align: left">{{ bc['bc_name'] }}</td>
+      <td>{{ bc['created'] }}</td>
+      <td>{{ bc['state'] }}</td>
+      <td>{{ bc['bat_id'] }}</td>
+      <td>{{ bc['bat_v'] }}</td>
+      <td>{{ bc['current'] }}</td>
+      <td>{{ bc['mah'] }}</td>
+      <td>{{ bc['period'] }}</td>
+      <td>{{ bc['soc_state'] }}</td>
+      <td>{{ bc['soc_uid'] }}</td>
+      <td>{{ cycle }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table class="sortable inactive">
+  <caption>
+    Inactive BCs
+  </caption>
+  <thead>
+    <tr>
+      <th style="text-align: left">BC</th>
+      <th>Timestamp</th>
+      <th>State</th>
+      <th>Battery ID</th>
+      <th>Voltage</th>
+      <th>Current</th>
+      <th>mAh</th>
+      <th>Period</th>
+      <th>SoC State</th>
+      <th>SoC UID</th>
+      <th>Cycle</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bc in state_dat['inactive'] %}
+    <tr>
+      {% set cycle = f"{bc['soc_cycle']}/{bc['soc_cycles']}" if bc['soc_cycles'] else '' %}
+      <td style="text-align: left">{{ bc['bc_name'] }}</td>
+      <td>{{ bc['created'] }}</td>
+      <td>{{ bc['state'] }}</td>
+      <td>{{ bc['bat_id'] }}</td>
+      <td>{{ bc['bat_v'] }}</td>
+      <td>{{ bc['current'] }}</td>
+      <td>{{ bc['mah'] }}</td>
+      <td>{{ bc['period'] }}</td>
+      <td>{{ bc['soc_state'] }}</td>
+      <td>{{ bc['soc_uid'] }}</td>
+      <td>{{ cycle }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+

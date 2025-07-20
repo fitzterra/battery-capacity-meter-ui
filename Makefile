@@ -353,7 +353,12 @@ mr:
 	  echo -e "Please create a feature branch first.\n"; \
 	  exit 1; \
 	fi; \
-	glab mr create --squash-before-merge --remove-source-branch
+	parent=$$(./guess-parent-branch.sh); \
+	if [[ -z $$parent ]]; then \
+		echo -e "\nCan not determine parent branch to merge into."; \
+		exit 1; \
+	fi; \
+	glab mr create --squash-before-merge --remove-source-branch --target-branch $$parent
 
 ## Shows the full environment the Makefile sees
 show-env:

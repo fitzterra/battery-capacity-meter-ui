@@ -732,6 +732,13 @@ class SoCEvent(BaseModel):
         """
 
         table_name = "soc_event"
+        indexes = (
+            # NOTE: This index is commented out because the ID field needs to
+            # be created in descending order and Peewee does not support this
+            # currently.
+            # This index is managed by the `indexManager` deployment function.
+            # (('bc_name', '-id'), False),
+        )
 
 
 class Log(BaseModel):
