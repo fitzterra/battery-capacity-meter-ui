@@ -25,6 +25,10 @@ from .batteries import (
     bat,
     BASE_URL as BASE_BAT,
 )
+from .bcm_state import (
+    bcm_state,
+    BASE_URL as BASE_BCM_STATE,
+)
 from .calibration import (
     calib,
     BASE_URL as BASE_CALIB,
@@ -64,6 +68,7 @@ Response.default_content_type = "text/html"
 app = Microdot()
 app.mount(events, url_prefix=BASE_EVENTS)
 app.mount(bat, url_prefix=BASE_BAT)
+app.mount(bcm_state, url_prefix=BASE_BCM_STATE)
 app.mount(calib, url_prefix=BASE_CALIB)
 app.mount(logs, url_prefix=BASE_LOGS)
 

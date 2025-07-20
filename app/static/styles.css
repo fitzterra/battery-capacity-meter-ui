@@ -289,6 +289,22 @@ table th {
 }
 
 /**
+ * BCM state view
+ **/
+table.inactive,
+table.active {
+    font-size: 85%;
+    white-space: nowrap;
+}
+table.inactive th,
+table.inactive td,
+table.active th,
+table.active td {
+    text-align: left;
+    padding-left: 0rem;
+    padding-right: 1rem;
+}
+/**
  * Calibration view
  **/
 table.retest th,
