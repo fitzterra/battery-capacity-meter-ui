@@ -1,6 +1,9 @@
 {% args state_dat %}
 <h3>BCM State</h3>
 
+<!-- Refresh Button -->
+<div class="refresher" title="Refresh page">⟳<span class="count"></span></div>
+
 <table class="sortable active">
   <caption>
     Active BCs
@@ -79,3 +82,30 @@
   </tbody>
 </table>
 
+<script>
+  const refreshBtn = document.querySelector('div.refresher');
+  const count = refreshBtn.querySelector("span.count");
+  let counter = 10; // seconds
+
+  function updateLabel() {
+    count.textContent = `${counter}`;
+  }
+
+  // Initial label
+  updateLabel();
+
+  // Countdown
+  const timer = setInterval(() => {
+    counter -= 1;
+    if (counter <= 0) {
+      location.reload();
+    } else {
+      updateLabel();
+    }
+  }, 1000);
+
+  // Manual click to refresh now
+  refreshBtn.addEventListener('click', () => {
+    location.reload();
+  });
+</script>

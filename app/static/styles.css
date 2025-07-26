@@ -304,6 +304,34 @@ table.active td {
     padding-left: 0rem;
     padding-right: 1rem;
 }
+div.refresher {
+	display: flex;
+	position: absolute;
+	top: 2rem;
+	right: 1rem;
+	border-radius: 0.8rem;
+	color: inherit;
+	background-color: var(--pico-primary);
+
+	font-size: 1rem;
+	align-items: center;
+	justify-content: center;
+	padding: 0rem 0.2rem;
+
+	cursor: pointer;
+	
+    opacity: 0.6;
+	transition: opacity 0.2s ease;
+}
+
+div.refresher:hover {
+    opacity: 1;
+}
+div.refresher span.count {
+    font-size: 0.7rem;
+    width: 1.2rem;
+}
+
 /**
  * Calibration view
  **/
