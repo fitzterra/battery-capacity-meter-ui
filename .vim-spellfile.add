@@ -16,3 +16,10 @@ measureSummary
 SoC
 batEvents
 delUnallocBatEvents
+datetime
+YYYY
+datetimes
+HH
+img
+BatteryImage
+src
