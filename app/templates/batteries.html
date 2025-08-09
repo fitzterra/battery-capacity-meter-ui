@@ -5,17 +5,28 @@
   </caption>
   <thead>
     <tr>
-      <th>Battery ID</th>
-      <th>Measure Date</th>
-      <th><strong>Capacity</strong></th>
-      <th>Accuracy</th>
-      <th>Measures</th>
+      <th colspan=2 style="text-align: center;">Battery ID</th>
+      <th data-sort-col="2">Measure Date</th>
+      <th data-sort-col="3"><strong>Capacity</strong></th>
+      <th data-sort-col="4">Accuracy</th>
+      <th data-sort-col="5">Measures</th>
     </tr>
   </thead>
   <tbody>
     {% for b in bats %}
     <tr>
-      <td><a href="{{ b['bat_id'] }}/">{{ b['bat_id'] }}</a></td>
+      <td style="padding-right: 1px;">
+        <a href="{{ b['bat_id'] }}/">
+          {{ b['bat_id'] }}
+        </a>
+      </td>
+      <td style="padding: 0px; text-align: center;">
+        {% if b['has_img'] %}
+        <a href="{{ b['bat_id'] }}/">
+          <img class="small-bat-img" src="{{ b['bat_id'] }}/img">
+        </a>
+        {% endif %}
+      </td>
       <td>{{ b['cap_date'] }}</td>
       <td data-sort="{{ b['mah'] }}"><strong>{{ b['mah'] }}mAh</strong></td>
       <td data-sort="{{ b['accuracy'] }}">{{ b['accuracy'] }}%</td>

@@ -289,6 +289,13 @@ table th {
 }
 
 /**
+ * Batteries list view
+ **/
+img.small-bat-img {
+    height: 1rem;
+}
+
+/**
  * BCM state view
  **/
 table.inactive,
