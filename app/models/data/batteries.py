@@ -10,7 +10,7 @@ import io
 import logging
 
 from typing import Iterable
-from peewee import fn, JOIN
+from peewee import fn, JOIN, Case, Value
 
 from PIL import Image
 
@@ -47,6 +47,15 @@ def getKnownBatteries(
             SQL search on the battery ID. Only entries where this search match
             will be returned. May be an empty list.
 
+    .. note::
+        The ``has_img`` field is a bool to indicate if this battery has an
+        image in `BatteryImage`.
+
+        If ``True``, the UI can use whatever URL renders the battery images to
+        show the image. This should be something like ``/bat/{bat_id}/img``.
+
+        If ``False``, then no image is available to render.
+
     Yields:
         `Battery` and ``count`` of linked `BatCapHistory` entries:
 
@@ -58,14 +67,35 @@ def getKnownBatteries(
               'cap_date': '2025-05-12',
               'mah': 1393,
               'accuracy': 98,
+              'has_img': True/False,
               'h_count': 2},
 
     """
     with db.connection_context():
         query = (
-            Battery.select(Battery, fn.COUNT(BatCapHistory.id).alias("h_count"))
+            Battery.select(
+                Battery,
+                Case(
+                    None,
+                    (
+                        (
+                            # Image is NOT NULL
+                            BatteryImage.battery.is_null(False),
+                            # Then True, there is an image
+                            True,
+                        ),
+                    ),
+                    # Else, False, there is no image
+                    False,
+                ).alias("has_img"),
+                fn.COUNT(BatCapHistory.id).alias("h_count"),
+            )
+            # Join image table first (one-to-one, so no row multiplication)
+            .join(BatteryImage, JOIN.LEFT_OUTER)
+            # Switch join context back to Battery for history aggregation
+            .switch(Battery)
             .join(BatCapHistory, JOIN.LEFT_OUTER)
-            .group_by(Battery.id)
+            .group_by(Battery.id, BatteryImage.battery)
             .order_by(Battery.bat_id)
         )
 
