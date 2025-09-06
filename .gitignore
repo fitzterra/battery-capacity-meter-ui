@@ -12,3 +12,4 @@ doc/app-docs
 
 # uTemplate compiled templates
 app/templates/*.py
+docker-compose.override.yml

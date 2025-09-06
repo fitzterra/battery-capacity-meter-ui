@@ -6,3 +6,4 @@ from .batteries import *
 from .events import *
 from .logs import *
 from .bc_calibration import *
+from .bat_packs import *

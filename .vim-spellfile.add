@@ -23,3 +23,7 @@ HH
 img
 BatteryImage
 src
+BatteryPack
+struct
+len
+config

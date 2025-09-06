@@ -33,6 +33,10 @@ from .calibration import (
     calib,
     BASE_URL as BASE_CALIB,
 )
+from .bat_packs import (
+    pack,
+    BASE_URL as BASE_PACK,
+)
 from .logs import (
     logs,
     BASE_URL as BASE_LOGS,
@@ -70,6 +74,7 @@ app.mount(events, url_prefix=BASE_EVENTS)
 app.mount(bat, url_prefix=BASE_BAT)
 app.mount(bcm_state, url_prefix=BASE_BCM_STATE)
 app.mount(calib, url_prefix=BASE_CALIB)
+app.mount(pack, url_prefix=BASE_PACK)
 app.mount(logs, url_prefix=BASE_LOGS)
 
 # Mount the APP API docs?
