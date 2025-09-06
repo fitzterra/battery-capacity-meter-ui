@@ -45,7 +45,7 @@
     // 1. Create dialog HTML
     const dialogHTML = `
         <dialog id="custom-confirm-dialog">
-            <article>
+            <article class='t-center'>
                 <header>
                     <strong id="custom-confirm-title">Please Confirm</strong>
                 </header>

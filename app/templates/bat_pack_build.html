@@ -1,0 +1,175 @@
+{% args pack, extra, pack_conn, pack_extra, avail, json %}
+<div class="bat_pack build_caption">Battery Pack Builder</div>
+
+<!-- The whole view is wrapped in a form -->
+<form action="" method="post" class="pack_build" hx-validate="true">
+
+  <!-- Keeps track of current config -->
+  <input type='hidden' name='config' value='{{ json.dumps(pack['config']) }}'>
+  <!-- Keeps track of extra batteries that can be added still -->
+  <input type='hidden' name='extra' value='{{ json.dumps(extra) }}'>
+
+  <fieldset class="pack_def">
+    <legend>Pack definition</legend>
+    <label>
+      <span>Pack Name</span>
+      <input
+        name="name"
+        placeholder="name for pack"
+        value="{{ pack['name'] or '' }}"
+        required
+      />
+    </label>
+
+    <label>
+      <span>Description</span>
+      <textarea
+        name="desc"
+        placeholder="optional description"
+      >{{ pack['desc'] or '' }}</textarea>
+    </label>
+
+    <label>
+      <span>Voltage</span>
+      <select
+        name="voltage"
+        hx-post=""
+        hx-trigger="change"
+        hx-include="closest form"
+        hx-vals='{"action": "v_change"}'
+      >
+        {% for n in range(1,8) %}
+        {% set v, V = n*3600, n*3.6 %}
+        <option value="{{ v }}"{{ 'selected' if pack['voltage']==v else '' }}>{{ V }}V</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      <span>Structure</span>
+      <input readonly value="{{pack['config']['struct']}}" />
+    </label>
+
+    <label>
+      <span>Capacity</span>
+      <span class="field">{{ pack['capacity'] }}mAh<span>
+      <input hidden name='capacity' value="{{ pack['capacity'] }}" />
+    </label>
+
+    <div class="grid">
+      <button type="submit" name="save">Save</button>
+      <a href="/pack/" role="button" class="outline secondary">Cancel</a>
+    </div>
+  </fieldset>
+
+  <fieldset class="cells">
+    <legend>Battery Selection</legend>
+
+    <table class="pack">
+      <caption>Pack</caption>
+      <thead>
+        <tr>
+          <th class="p">P</th>
+          <th class="s">S</th>
+          <th>Battery ID</th>
+          <th>Capacity</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for idx, serial in enumerate(pack_conn) %}
+        {% for b in serial %}
+        <tr>
+          <td class="p"></td>
+          <td class="s {{ 'odd' if idx%2 else 'even' }}"></td>
+          <td class="no_wrap">
+            {{ b['bat_id'] }}
+            {% if b['has_img'] %}
+            <img src="/bat/{{ b['bat_id'] }}/img">
+            {% endif %}
+          </td>
+          <td>{{ b['mah'] }}mAh</td>
+          <td
+            class="rem"
+            hx-post=""
+            hx-include="closest form"
+            hx-vals='{"action": "rem", "bid": "{{ b['id'] }}"}'
+          >▼</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <table class="nomatch">
+      <caption>Unmatched</caption>
+      <thead>
+        <tr>
+          <th>Battery ID</th>
+          <th>Capacity</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in pack_extra %}
+        <tr>
+          <td class="no_wrap">
+            {{ b['bat_id'] }}
+            {% if b['has_img'] %}
+            <img src="/bat/{{ b['bat_id'] }}/img">
+            {% endif %}
+          </td>
+          <td>{{ b['mah'] }}mAh</td>
+          <td
+            class="rem"
+            hx-post=""
+            hx-include="closest form"
+            hx-vals='{"action": "rem", "bid": "{{ b['id'] }}"}'
+          >▼</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="up_down_arrow">↕</p>
+
+    <table class="avial sortable">
+      <caption>Available Batteries</caption>
+      <thead>
+        <tr>
+          <th>Battery ID</th>
+          <th class="mah">Capacity</th>
+          <th class="acc">Accuracy</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in avail %}
+        <tr>
+          <td class="no_wrap">
+            {{ b['bat_id'] }}
+            {% if b['has_img'] %}
+            <img src="/bat/{{ b['bat_id'] }}/img">
+            {% endif %}
+          </td>
+          <td
+            class="mah"
+            data-sort="{{b['mah']}}"
+          >{{ b['mah'] }}mAh</td>
+          <td
+            class="acc"
+            data-sort="{{b['accuracy']}}"
+          >{{ b['accuracy'] }}%</td>
+          <td
+            class="add"
+            hx-post=""
+            hx-include="closest form"
+            hx-vals='{"action": "add", "bid": "{{ b['id'] }}"}'
+          >▲</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </fieldset>
+</form
+
