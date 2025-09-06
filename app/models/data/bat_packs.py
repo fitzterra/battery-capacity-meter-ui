@@ -301,16 +301,16 @@ def packStructure(conf: list) -> str:
 
     The input is the `BatteryPack.config` list
 
-    If config is the empty string, it returns '0S0P'
+    If config is the empty string, it returns ``0S0P``
 
     Conf is expected to a list of lists (or empty for no cells).
 
     Each entry in the list is another list defining the ids for the battery in
     that serial string.
 
-    For only one battery it would look like: [[3]] - '1S1P'
-    For two in series it would be: [[4,9]] - '2S1P'
-    For two in parallel it would be [[5], [2]] - '1S2P'
+    * For only one battery it would look like: ``[[3]]`` - **1S1P**
+    * For two in series it would be: ``[[4,9]]`` - **2S1P**
+    * For two in parallel it would be ``[[5], [2]]`` - **1S2P**
 
     Anything else will be one or more parallel connections of one or more
     serial batteries in series.
@@ -527,7 +527,7 @@ def savePack(
 
     Returns:
 
-        A dictionary to indicate success or failure:
+        A dictionary:
 
         .. python::
         {

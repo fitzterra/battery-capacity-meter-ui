@@ -223,7 +223,7 @@ def packUpdate(req, pack_id=None):
       to fill a serial string. We convert this to a list and it is used when
       reevaluating the pack config if this POST adds or removes batteries.
     * ``capacity``: The capacity that was calculated for the current pack
-    ``config``.
+      ``config``.
     * ``action``: If present, it indicates that a pack reconfiguration needs to
       be made. Either the pack voltage has changed, or batteries have been
       added or removed. This will cause the requested action to be taken and
