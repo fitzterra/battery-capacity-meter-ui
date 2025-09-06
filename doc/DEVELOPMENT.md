@@ -10,13 +10,15 @@ How to develop on this project
 	1. [Basic Flow](#basic-flow)
 5. [Migrations](#migrations)
 	1. [Testing your migrations](#testing-your-migrations)
+6. [Debugging](#debugging)
+
 
 **Import**: Using the `make` commands
 ---------------------------------
 
 Most management or repetitive task are driven from the `Makefile`.
 
-Run `make help` and _read and understand_ the available commands and use them
+Run `make help` and _read and understand_ the available commands and use them,
 rather than hand crafting something.
 
 If you find yourself repeating the same flow over and over again, add a new
@@ -181,4 +183,8 @@ To test that your migration will work correctly, follow this flow:
 * When done, you can now restore your previous UAT DB with:
     * `make db-restore-uat`
     * `make db-drop-snapshot`
+
+## Debugging
+
+See the [debugging](./doc/DEBUGGING.md) document for remote debugging info.
 

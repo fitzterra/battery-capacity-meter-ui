@@ -427,7 +427,7 @@ async def delUIDEvents(req, bat_id, uid):
         return errorResponse(res["msg"])
 
     return (
-        "<article class='success'>"
+        "<article class='success t-center'>"
         "    <header>Success</header>"
         f"    {res['msg']}"
         "     <br />"

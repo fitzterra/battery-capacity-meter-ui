@@ -30,6 +30,27 @@
     margin: 0;
 }
 
+.t-left {
+    text-align: left;
+}
+
+.t-right {
+    text-align: right;
+}
+
+.t-center {
+    text-align: center;
+}
+
+/* Truncates long text using ellipsis... */
+.truncate {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 0;    /* This is important! */
+}
+
+
 /* Battery search input in header */
 form .battery-search {
 	margin-bottom: 0 !important;
@@ -49,11 +70,6 @@ form .scan-label {
 	border: none;
 }
 
-/* Load spinner while waiting for the API call */
-.spinner {
-    text-align: center;
-}
-
 /* Layout */
 .layout {
     display: flex;
@@ -67,10 +83,6 @@ form .scan-label {
     padding: 1rem;
     background-color: var(--pico-secondary-background);
     border-radius: var(--pico-border-radius);
-}
-
-.nav-menu .title {
-    text-align: center;
 }
 
 .nav-menu ul {
@@ -89,7 +101,6 @@ form .scan-label {
     color: var(--pico-primary-inverse);
     background-color: var(--pico-secondary-hover);
     border-radius: var(--pico-border-radius);
-    text-align: center;
 }
 
 .nav-menu ul li a:hover {
@@ -103,7 +114,6 @@ main {
     background-color: var(--pico-background);
     /* border-radius: var(--pico-border-radius); */
     border-left: solid 1px var(--pico-primary-focus);
-    text-align: center;
     position: relative;
 }
 
@@ -132,12 +142,14 @@ table .clickable:hover {
     background-color: var(--pico-secondary-hover);
 }
 
-table caption {
+table caption,
+div.build_caption {
     font-size: 1.5rem; /* 150% */
     font-weight: bolder;
     border-radius: var(--pico-border-radius);
     background-color: var(--pico-secondary-background);
     padding: 0.5rem; /* Added padding for better spacing */
+    position: relative; /* Relative to make it easier to place things like buttons etc. in the caption */
 }
 
 /* Consistent border-radius */
@@ -210,15 +222,9 @@ table caption {
 }
 
 
-/* All text in the main welcome div on the index page if there is no content. */
-div.welcome{
-    text-align: left;
-}
-
 /* Article for showing a success result */
 article.success {
 	background-color: var(--pico-color-green-850);
-	text-align: center;
 	border-radius: var(--pico-border-radius);
 }
 
@@ -230,10 +236,6 @@ article.success header {
 	border-radius: var(--pico-border-radius) var(--pico-border-radius) 0% 0%;
 	margin-bottom: 1rem;
 	border-bottom: 0px;
-}
-
-dialog article {
-    text-align: center;
 }
 
 dialog article header{
@@ -345,6 +347,145 @@ div.refresher span.count {
 table.retest th,
 table.retest td {
     text-align: left;
+}
+
+/**
+ * Battery Packs View
+ **/
+table.bat_pack_view tbody tr {
+    cursor: pointer;
+}
+table.bat_pack_view tbody tr:hover td {
+    background-color: var(--pico-primary-hover);
+    color: var(--pico-primary-inverse);
+}
+
+table.bat_pack_view caption a.pack_build_button {
+	position: absolute;
+	margin: 0;
+	right: 1rem;
+	top: 50%;
+	transform: translateY(-50%);
+
+	font-size: 0.8rem;
+	text-decoration: none;
+	font-weight: normal;
+	padding: 0.1rem 0.2rem;
+
+	background: var(--pico-primary);
+	color: var(--pico-primary-inverse);
+	border-radius: 0.3rem;
+}
+
+/**
+ * Pack Builder
+ **/
+form.pack_build fieldset {
+    border: 1px solid var(--pico-primary-underline);
+	border-radius: var(--pico-border-radius);
+    padding: 0 0.5rem;
+    width: 48%;
+    display: inline-block;
+    margin: 0 0.5%;
+    vertical-align: top;
+}
+form.pack_build fieldset legend {
+    margin: 0 0.6rem;
+    padding: 0 0.4rem;
+    font-size: smaller;
+    font-weight: bolder;
+}
+form.pack_build fieldset.pack_def label {
+    text-align: left;
+}
+form.pack_build fieldset.pack_def label span {
+    display: inline-block;
+    width: 22%;
+    font-size: 0.9rem;
+}
+form.pack_build fieldset.pack_def input,
+form.pack_build fieldset.pack_def select {
+    width: 75%;
+    padding: 0 0.5rem;
+    height: 2rem;
+    margin: 0.2rem;
+    font-size: 0.9rem;
+}
+form.pack_build fieldset.pack_def textarea {
+    padding: 0 0.5rem;
+    margin: 0.2rem;
+    font-size: 0.9rem;
+}
+form.pack_build fieldset.pack_def div.grid a {
+    height: fit-content;
+}
+
+/* Global table configs inside the cells selection fieldset */
+fieldset.cells table {
+    font-size: 0.9rem;
+}
+fieldset.cells table {
+    font-size: 0.9rem;
+}
+fieldset.cells table caption {
+	font-size: 1rem;
+	padding: 0.1rem;
+}
+fieldset.cells table :is(td, th) {
+    text-align: left;
+}
+fieldset.cells table td.no_wrap {
+    text-wrap: nowrap;
+}
+fieldset.cells table td img {
+    height: 1rem;
+}
+fieldset.cells table :is(td.mah, th.mah) {
+    padding-inline: 0px;
+    text-align: right;
+}
+fieldset.cells table :is(td.acc, th.acc) {
+    padding-inline: 0px;
+    text-align: right;
+}
+fieldset.cells table td.rem {
+    color: rgba(175, 120, 60, 1.0);
+    cursor: pointer;
+    padding-inline: 0px;
+    text-align: right;
+}
+fieldset.cells table td.add {
+    color: rgba(65, 180, 65, 1.0);
+    cursor: pointer;
+    padding-inline: 0px;
+    text-align: right;
+}
+fieldset.cells table.nomatch {
+    margin-bottom: 0px;
+}
+fieldset.cells p.up_down_arrow {
+    font-size: 3rem;
+    margin: 0px;
+    line-height: 3rem;
+    color: var(--pico-secondary-focus);
+}
+
+/* Pack config table */
+/* Remove left right padding P and S columns in the pack_def table. */
+table.pack :is(th.p, th.s, td.p, td.s) {
+    padding-inline: 0;
+}
+table.pack td.p {
+    border-bottom: none;
+    background: rgba(35,60,150, 0.3);
+}
+table.pack td.s.odd {
+    border-bottom: none;
+    background: rgba(150,80,50, 0.3);
+}
+table.pack td.s.even {
+    border-bottom: none;
+    background: rgba(35,120,150, 0.3);
 }
 /**
  * Battery image capture functionality

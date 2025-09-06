@@ -84,6 +84,94 @@ class BaseModel(Model):
         database = db
 
 
+class BatteryPack(BaseModel):
+    """
+    Defines a battery pack consisting of multiple `Battery` entries.
+
+    This allows grouping batteries together to form larger packs either in
+    voltage or capacity or both.
+
+    Each pack has a configuration which defines how the cells in the pack are
+    connected. This is a combination of serial and parallel connections and is
+    designated as "2S1P" indicating 2 cells in series, or "2S2P" for 2 sets of
+    2 cells in series which in turn are then connected in parallel, etc.
+
+    Any combination of connections are allowed and the entry here only
+    indicates the connection configuration with the `config` field. The actual
+    link to the batteries in the pack are with the `Battery.pack` foreign keys
+    on the `Battery` table.
+
+    Attributes:
+        NOM_V: Constant defining the nominal voltage for a Li-Ion
+            battery.
+        id: Primary key auto incrementing ID
+        created: Created timestamp
+        modified: Modified timestamp
+        name: Unique name given to this pack.
+        desc: An optional description that can be added for more details.
+        config: The connection config.
+
+            This will be a dictionary like:
+
+            .. python::
+
+                {
+                    "struct": "nSnP", # The construction, 1S2P, 2S2P, etc.
+                    "conn": [ [id, id], [id, id] ] # Connection grouping
+                }
+
+            For a new, empty pack, the ``struct`` will be ``0S0P`` and ``conn``
+            will be the empty list.
+            The IDs in the ``conn`` list of lists are the `Battery.id` values
+            for the batteries making up the pack. Each of those `Battery`
+            entries would also have an FK back to this pack.
+        voltage: The *nominal* voltage for this pack, which will be 3600mV (the
+            default) times with the number of serial connections. We currently
+            assume these are all Li-Ion type cells with nominal voltage of 3.6V
+            per cell. Note this value will be mV.
+        capacity: The *expected* capacity in mAh based on the best configuration
+            of the available cells.
+        notes: Optional free form notes to add for this pack.
+    """
+
+    # Default nominal voltage (in mV) for a single Li-Ion cell
+    NOM_V = 3600
+
+    id = AutoField()
+    created = DateTimeField(default=datetime.now, index=True)
+    modified = DateTimeField(default=datetime.now, index=True)
+    name = CharField(unique=True, index=True, null=False, max_length=40)
+    desc = CharField(null=True, max_length=200)
+    # This will be something like [[id,id,..],...] inner lists are serial
+    # strings in parallel in outer list.
+    config = JSONField(default={"struct": "0S0P", "conn": []})
+    voltage = IntegerField(null=False, default=3600)
+    capacity = IntegerField(null=False, default=0)
+    notes = TextField(null=True)
+
+    class Meta:
+        """
+        Model config.
+
+        Attributes:
+            table_name: Name of the table in the database.
+        """
+
+        table_name = "battery_pack"
+
+    def save(self, *args, **kwargs):
+        """
+        Auto-update modified timestamp on update.
+
+        The alternative to this is to set a trigger on the DB, but this means
+        we have to maintain this outside of the model definitions which is not
+        the best approach in this instance.
+        """
+        if not self._pk:  # Only set modified if updating, not on insert
+            self.modified = datetime.now()
+        return super().save(*args, **kwargs)
+
+
 class Battery(BaseModel):
     """
     Base battery entry for all available batteries.
@@ -115,6 +203,8 @@ class Battery(BaseModel):
             details.
         mah: The last measure capacity in mAh. This is the
              `BatCapHistory.mah` value for the most recent history entry.
+        pack: If this battery is part of a `BatteryPack`, this would an FK to
+            that `BatteryPack`
     """
 
     id = AutoField()
@@ -124,6 +214,9 @@ class Battery(BaseModel):
     cap_date = DateField(null=False)
     mah = IntegerField(null=False)
     accuracy = IntegerField(null=False)
+    pack = ForeignKeyField(
+        BatteryPack, backref="cells", null=True, on_delete="RESTRICT"
+    )
 
     class Meta:
         """
