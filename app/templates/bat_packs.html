@@ -1,0 +1,41 @@
+{% args packs %}
+<table data-name="bat_packs" class="sortable bat_pack_view">
+  <caption>
+    Battery Packs <a class="pack_build_button" href="build/">Build</href>
+  </caption>
+  <thead>
+    <tr>
+      <th>Created</th>
+      <th>Modiefied</th>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Config</th>
+      <th>Voltage</th>
+      <th>Capacity</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in packs %}
+    <tr
+      hx-get="build/{{ p['id'] }}/"
+      hx-push-url="true"
+    >
+      <td
+        class="t-left"
+        title="{{ p['created'] }}"
+      >{{ p['created'].split(' ')[0] }}</td>
+      <td
+        class="t-left"
+        title="{{ p['modified'] }}"
+      >{{ p['modified'].split(' ')[0] }}</td>
+      <td class="t-left">{{ p['name'] }}</td>
+      <td class="t-left truncate">{{ p['desc'] or '' }}</td>
+      <td>{{ p['config']['struct'] }}</td>
+      <td data-sort="{{ p['voltage'] }}">{{ p['voltage'] }}mV</td>
+      <td data-sort="{{ p['capacity'] }}">{{ p['capacity'] }}mAh</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+

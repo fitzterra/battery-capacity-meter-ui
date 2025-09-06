@@ -341,6 +341,55 @@ rem-repl:
 shell:
 	@docker exec -ti $(CONTAINER_NAME) bash
 
+## Remote debugging helpers - see docs/DEBUGGING.md
+
+COMP_OVRD=docker-compose.override.yml
+
+# This is a compose template that will be created as $COMP_OVRD to allow us to
+# expose the debug port for us to connect to for a debug session.
+define override_template
+services:
+  soc-ui-dev:
+    ports:
+      - "$${DEBUG_PORT}:$${DEBUG_PORT}"
+endef
+
+export override_template
+
+# Sets up for remote debugging. Make sure COMP_OVRD exists and that remote-pdb
+# is installed in the container.
+rem-debug-setup:
+	@if [ -z "$(DEBUG_PORT)" ]; then \
+		echo "Please set DEBUG_PORT in .env_local before setting up for remote debugging."; \
+		exit 1; \
+	fi
+	@IS_RUNNING=$$(docker ps --filter "name=$(CONTAINER_NAME)" --format '{{.Names}}'); \
+	echo ">>> Checking for $(COMP_OVRD)..."; \
+	if [ ! -f $(COMP_OVRD) ]; then \
+		echo "Creating $(COMP_OVRD)..."; \
+		echo "$$override_template" > $(COMP_OVRD); \
+		if [ -n "$$IS_RUNNING" ]; then \
+			echo -e "\n⚠️ IMPORTANT: Please restart the container and run this again!"; \
+			exit 0; \
+		fi; \
+	else \
+		echo "$(COMP_OVRD) already exists."; \
+	fi; \
+	echo ">>> Checking if container '$(CONTAINER_NAME)' is running..."; \
+	if [ -n "$$IS_RUNNING" ]; then \
+		echo "Installing remote-pdb inside container $(CONTAINER_NAME)..."; \
+		docker exec -it $(CONTAINER_NAME) pip install remote-pdb; \
+	else \
+		echo "Container $(CONTAINER_NAME) is not running. Please start it with 'make run'."; \
+	fi
+
+# Starts a remote debug session once a breakpoint has been hit
+rem-debug:
+	@echo ">>> Connecting to remote debug server on port ${DEBUG_PORT}..."
+	@echo -e "See docs/DEBUGGING.md for more info.\n"
+	@telnet localhost $(DEBUG_PORT)
+
+
 ## Shows the compose config
 compose-conf:
 	@docker-compose config

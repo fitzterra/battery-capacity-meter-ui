@@ -45,6 +45,18 @@ battery {
    TIMESTAMP created 
    INTEGER mah 
    TIMESTAMP modified 
+   INTEGER pack_id 
+}
+battery_pack {
+ INTEGER id PK
+   INTEGER capacity 
+   VARCHAR(8) config 
+   TIMESTAMP created 
+   VARCHAR(200) desc 
+   TIMESTAMP modified 
+   VARCHAR(40) name 
+   TEXT notes 
+   INTEGER voltage 
 }
 log {
  INTEGER id PK
@@ -62,6 +74,7 @@ battery_image {
 }
 bat_cap_history one or zero--0+ soc_event : has
 battery one or zero--0+ bat_cap_history : has
+battery_pack one or zero--0+ battery : has
 battery one or zero--zero or one battery_image : has
 
 
