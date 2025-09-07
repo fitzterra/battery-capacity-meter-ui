@@ -28,7 +28,7 @@
         class="t-left"
         title="{{ p['modified'] }}"
       >{{ p['modified'].split(' ')[0] }}</td>
-      <td class="t-left">{{ p['name'] }}</td>
+      <td class="t-left truncate">{{ p['name'] }}</td>
       <td class="t-left truncate">{{ p['desc'] or '' }}</td>
       <td>{{ p['config']['struct'] }}</td>
       <td data-sort="{{ p['voltage'] }}">{{ p['voltage'] }}mV</td>

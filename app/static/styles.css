@@ -49,6 +49,15 @@
     text-overflow: ellipsis;
     max-width: 0;    /* This is important! */
 }
+/* Truncating anchor tags are more of a pain since they need to set a block
+ * type and then given a width. We default the width here, but to change this
+ * on a tag by tag basis, just add a style="width: nnn" to the tag directly.
+ */
+a.truncate {
+    display: inline-block;
+    width: 4rem;
+    max-width: none;
+}
 
 
 /* Battery search input in header */
@@ -352,6 +361,12 @@ table.retest td {
 /**
  * Battery Packs View
  **/
+div.bat_pack.build_caption a.pack-back-ico{
+    float: left;
+    text-decoration: none;
+    color: var(--pico-primary-inverse);
+}
+
 table.bat_pack_view tbody tr {
     cursor: pointer;
 }

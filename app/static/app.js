@@ -802,12 +802,123 @@ function initBatLabelScan() {
     window.closeScanLabel = closeModal;
 }
 
+/**
+ * ---- Persisting table sorting ----
+ *
+ * Stores any user selected table sort order for all sortable tables, and then
+ * auto resorts the table when ever it is loaded.
+ *
+ * This function listens for the `sort-end` events emitted by the sortable
+ * library (https://github.com/tofsjonas/sortable) we load in the main HTML
+ * page.
+ * 
+ * For these events, the event handler will determine the table name by looking
+ * for a `data-name` attribute on the table being sorted. These must be unique
+ * for each sortable table across the application.
+ *
+ * It will then also determine which column and direction the current sort
+ * order is, and then save the sort order and column for this table in local
+ * storage.
+ *
+ * It also adds an event listener for any HTMX afterswap events. For these
+ * events, the DOM will be scanned for all sortable tables and the saved sort
+ * order if available will be restored for the table. This is done by
+ * simulating a click event on the th element. If the order after the click
+ * does not match the stored order, another click is done.
+ *
+ * For this to work, the table must have a `data-name` attribute, and all
+ * data-name values must be unique across all tables in the app.
+ *
+ * Another caveat is that the column to sort is stored as an index into the
+ * table headers. If the header order changes, then the auto sort functionality
+ * will break until the user re-sorts on a specific column per table that
+ * changed.
+ **/
+function persistantSorting() {
+  const storageKey = name => `sortable_state:${name}`;
+  // Flag to indicate that we are in the process of restoring table orders
+  // after a page or HTMX load.
+  let restoring = false;
+
+  // Save sort state by introspecting headers after sort
+  document.addEventListener('sort-end', e => {
+    // While we are restoring previous table settings, we do not need to update
+    // localstorage once the sort is completed.
+    if (restoring) return;
+
+    // The sortable table will be in the e.target. Get the table name and
+    // return if no name.
+    const table = e.target;
+    const tableName = table.dataset.name;
+    if (!tableName) return;
+
+    // Get a list of all <th>s and check which one has the 'aria-sort'
+    // attribute added by the sortable function.
+    const ths = Array.from(table.querySelectorAll('th'));
+    const sortedTh = ths.find(th => th.hasAttribute('aria-sort'));
+    if (!sortedTh) return; // No active sort found
+
+    // Get the index for the column being sorted as well as the sort direction
+    const columnIndex = ths.indexOf(sortedTh);
+    const direction = sortedTh.getAttribute('aria-sort') === 'descending' ? 'desc' : 'asc';
+
+    // Store it locally using the storageKey arrow function defined above to
+    // generate the storage key name
+    localStorage.setItem(
+      storageKey(tableName),
+      JSON.stringify({ column: columnIndex, direction })
+    );
+  });
+
+  // Restore saved sort state
+  function restoreTableSort(table) {
+    const tableName = table.dataset.name;
+    if (!tableName) return;
+
+    const saved = localStorage.getItem(storageKey(tableName));
+    if (!saved) return;
+
+    const { column, direction } = JSON.parse(saved);
+    const th = table.querySelectorAll('th')[column];
+    if (!th) return;
+
+    // The only way to sort is to simulate the click on the th column.
+    th.click(); // First click to sort
+    const currentDirection = th.getAttribute('aria-sort');
+    const needsToggle =
+      (direction === 'desc' && currentDirection !== 'descending') ||
+      (direction === 'asc' && currentDirection !== 'ascending');
+
+    if (needsToggle) th.click(); // Second click if needed
+  }
+
+  // Restores all sortable table sort orders on a fresh DOM load or after an
+  // HTMX swap
+  function restoreAllTables() {
+    // Flag to indicate we are restoring - while set, the `sort-end` event
+    // listener will not write the sort order saved data to localstorage.
+    // This is more efficient since the sort-end event will be emitted on
+    // every table sort order restore we do.
+    restoring = true;
+    document.querySelectorAll('table.sortable').forEach(restoreTableSort);
+    restoring = false;
+  }
+
+  // Restore tables everytime we swap content via HTMX
+  document.body.addEventListener('htmx:afterSwap', restoreAllTables);
+
+  // We will always be called after the DOM has been loaded, so we
+  // always see if there are tables that needs restoring.
+  restoreAllTables();
+}
+
 // ---- Initialize everything ----
 function init() {
     initChartHandler();
     initErrorHandler();
     initBatImgCapModal();
     initBatLabelScan();
+    persistantSorting();
 }
 
 document.addEventListener('DOMContentLoaded', init);
