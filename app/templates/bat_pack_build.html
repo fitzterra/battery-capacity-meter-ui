@@ -1,5 +1,8 @@
 {% args pack, extra, pack_conn, pack_extra, avail, json %}
-<div class="bat_pack build_caption">Battery Pack Builder</div>
+<div class="bat_pack build_caption">
+  <a href="/pack/" class="pack-back-ico">⯇</a>
+  Battery Pack Builder
+</div>
 
 <!-- The whole view is wrapped in a form -->
 <form action="" method="post" class="pack_build" hx-validate="true">
@@ -147,7 +150,7 @@
         {% for b in avail %}
         <tr>
           <td class="no_wrap">
-            {{ b['bat_id'] }}
+            <a href="/bat/{{b['bat_id']}}/" target="_blank">{{b['bat_id']}}</a>
             {% if b['has_img'] %}
             <img src="/bat/{{ b['bat_id'] }}/img">
             {% endif %}
