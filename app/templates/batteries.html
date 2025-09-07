@@ -10,6 +10,7 @@
       <th data-sort-col="3"><strong>Capacity</strong></th>
       <th data-sort-col="4">Accuracy</th>
       <th data-sort-col="5">Measures</th>
+      <th data-sort-col="6">Pack</th>
     </tr>
   </thead>
   <tbody>
@@ -31,6 +32,15 @@
       <td data-sort="{{ b['mah'] }}"><strong>{{ b['mah'] }}mAh</strong></td>
       <td data-sort="{{ b['accuracy'] }}">{{ b['accuracy'] }}%</td>
       <td data-sort="{{ b['h_count'] }}">{{ b['h_count'] }}</td>
+      <td class="t-left">
+      {% if b['pack'] %}
+        <a
+          class="truncate"
+          style="width: 3.5rem"
+          href="/pack/build/{{b['pack']}}/"
+        >{{ b['pack_name'] }}</a>
+      {% endif %}
+      </td>
     </tr>
     {% endfor %}
   </tbody>
