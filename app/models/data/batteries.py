@@ -16,7 +16,7 @@ from PIL import Image
 
 from app.utils import datesToStrings
 
-from ..models import db, Battery, BatteryImage, BatCapHistory
+from ..models import db, Battery, BatteryImage, BatCapHistory, BatteryPack
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,11 @@ def getKnownBatteries(
     raw_dates: bool = False, search: str | None = None
 ) -> Iterable[dict]:
     """
-    Generator that returns all known batteries from the `Battery` table,
-    including a count of how many history entries each has.
+    Generator that returns all known batteries from the `Battery` table.
+
+    Each entry will also including a count of how many history entries each
+    has, if it has an image, and if it belongs to a `BatteryPack`, the pack ID
+    and the pack name.
 
     Args:
         raw_dates: If True, dates will be returned as datetime or date objects.
@@ -56,8 +59,14 @@ def getKnownBatteries(
 
         If ``False``, then no image is available to render.
 
+    .. note::
+        The ``pack`` field will be the `BatteryPack` ID or ``None``.
+
+        The ``pack_name`` field will also be empty if the battery does not belong
+        to a pack.
+
     Yields:
-        `Battery` and ``count`` of linked `BatCapHistory` entries:
+        Dictionary entries like:
 
         .. python::
             {'id': 24,
@@ -68,7 +77,9 @@ def getKnownBatteries(
               'mah': 1393,
               'accuracy': 98,
               'has_img': True/False,
-              'h_count': 2},
+              'h_count': 2,
+              'pack': 2,
+              'pack_name': 'USB 5V pack for quick charge',},
 
     """
     with db.connection_context():
@@ -89,13 +100,18 @@ def getKnownBatteries(
                     False,
                 ).alias("has_img"),
                 fn.COUNT(BatCapHistory.id).alias("h_count"),
+                BatteryPack.name.alias("pack_name"),
             )
+            # Join BatteryPack (one-to-many)
+            .join(BatteryPack, JOIN.LEFT_OUTER)
+            # Switch back to Battery before joining BatteryImage
+            .switch(Battery)
             # Join image table first (one-to-one, so no row multiplication)
             .join(BatteryImage, JOIN.LEFT_OUTER)
             # Switch join context back to Battery for history aggregation
             .switch(Battery)
             .join(BatCapHistory, JOIN.LEFT_OUTER)
-            .group_by(Battery.id, BatteryImage.battery)
+            .group_by(Battery.id, BatteryImage.battery, BatteryPack.id)
             .order_by(Battery.bat_id)
         )
 
