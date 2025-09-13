@@ -176,7 +176,7 @@ To test that your migration will work correctly, follow this flow:
 * Test the migration: `make test-migration` - this does the following:
     * Drops any `_RC?` part from the version - this assumes you are on an RC
         release ready for the next prod version, and that the migration package
-        dir is for thie version.
+        dir is for this version.
     * Runs the `migrate.py` script in the current running container.
     * This will default to a dry run, and no migrations should succeed.
     * Now run it again with dry run off: `make test-migration DRY_RUN=0`
