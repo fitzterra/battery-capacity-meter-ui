@@ -92,9 +92,9 @@ class BatteryPack(BaseModel):
     voltage or capacity or both.
 
     Each pack has a configuration which defines how the cells in the pack are
-    connected. This is a combination of serial and parallel connections and is
-    designated as "2S1P" indicating 2 cells in series, or "2S2P" for 2 sets of
-    2 cells in series which in turn are then connected in parallel, etc.
+    connected. This is a combination of serially connected parallel strings and
+    is designated as "2S1P" indicating 2 cells in series, or "2S2P" for 2 sets
+    of 2 parallel strings connected in series, etc.
 
     Any combination of connections are allowed and the entry here only
     indicates the connection configuration with the `config` field. The actual
@@ -125,6 +125,7 @@ class BatteryPack(BaseModel):
             The IDs in the ``conn`` list of lists are the `Battery.id` values
             for the batteries making up the pack. Each of those `Battery`
             entries would also have an FK back to this pack.
+            See `optimalPack` for more info on the connection configuration.
         voltage: The *nominal* voltage for this pack, which will be 3600mV (the
             default) times with the number of serial connections. We currently
             assume these are all Li-Ion type cells with nominal voltage of 3.6V
@@ -215,7 +216,7 @@ class Battery(BaseModel):
     mah = IntegerField(null=False)
     accuracy = IntegerField(null=False)
     pack = ForeignKeyField(
-        BatteryPack, backref="cells", null=True, on_delete="RESTRICT"
+        BatteryPack, backref="cells", null=True, on_delete="SET NULL"
     )
 
     class Meta:
