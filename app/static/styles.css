@@ -490,15 +490,15 @@ fieldset.cells p.up_down_arrow {
 table.pack :is(th.p, th.s, td.p, td.s) {
     padding-inline: 0;
 }
-table.pack td.p {
+table.pack td.s {
     border-bottom: none;
     background: rgba(35,60,150, 0.3);
 }
-table.pack td.s.odd {
+table.pack td.p.odd {
     border-bottom: none;
     background: rgba(150,80,50, 0.3);
 }
-table.pack td.s.even {
+table.pack td.p.even {
     border-bottom: none;
     background: rgba(35,120,150, 0.3);
 }

@@ -34,8 +34,7 @@ import logging
 import json
 import copy
 
-from microdot.asgi import Microdot, Response
-from microdot.multipart import with_form_data
+from microdot.asgi import Microdot
 from microdot.utemplate import Template
 
 from app.models.data import (
@@ -43,7 +42,6 @@ from app.models.data import (
     getPack,
     convertIDs,
     getAvailable,
-    packStructure,
     build,
     savePack,
 )
@@ -328,7 +326,7 @@ def packUpdate(req, pack_id=None):
         # And the config
         b_pack["config"] = res["config"]
 
-        # TODO: comment
+        # .. and any left over batteries
         extra = res["extra"]
 
     # Now get the list of available batteries to choose from.
