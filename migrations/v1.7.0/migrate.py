@@ -62,3 +62,4 @@ def run(logger, dry_run: bool = True):
         logger.info("  \033[0;32m✔\033[0m Dry run complete. No changes were persisted.")
 
     logger.info("\033[0;32m✔\033[0m Migration complete.")
+    db.close()
