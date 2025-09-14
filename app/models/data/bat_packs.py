@@ -24,7 +24,6 @@ __all__ = [
     "getPack",
     "convertIDs",
     "getAvailable",
-    "packStructure",
     "build",
     "savePack",
 ]
@@ -291,39 +290,6 @@ def getAvailable(excl: list | None = None, raw_dates: bool = False):
                 yield datesToStrings(row)
 
 
-def packStructure(conf: list) -> str:
-    """
-    Returns a string defining the pack structure when given a connection
-    config.
-
-    ToDo: This function does not feel right here... should it be a method on
-    `BatteryPack` or even an actaul field on the `BatteryPack`?
-
-    The input is the `BatteryPack.config` list
-
-    If config is the empty string, it returns ``0S0P``
-
-    Conf is expected to a list of lists (or empty for no cells).
-
-    Each entry in the list is another list defining the ids for the battery in
-    that serial string.
-
-    * For only one battery it would look like: ``[[3]]`` - **1S1P**
-    * For two in series it would be: ``[[4,9]]`` - **2S1P**
-    * For two in parallel it would be ``[[5], [2]]`` - **1S2P**
-
-    Anything else will be one or more parallel connections of one or more
-    serial batteries in series.
-
-    The number of batteries in series is expected to be the same for all series
-    strings.
-    """
-    if not conf:
-        return "0S0P"
-
-    return f"{len(conf[0])}S{len(conf)}P"
-
-
 def optimalPack(bats: list, voltage: int, id_only=False):
     """
     Called from `build` after batteries have been validated to ensure we will
@@ -336,7 +302,7 @@ def optimalPack(bats: list, voltage: int, id_only=False):
     pack will be empty.
 
     First the serial count (S) is calculated by dividing the required pack
-    ``voltage`` by the nominal cells voltage (`Battery.NOM_V`)
+    ``voltage`` by the nominal cells voltage (`BatteryPack.NOM_V`)
 
     With the S count known, the available batteries will be grouped in
     subgroups of parallel combos. The number of batteries in each of these
@@ -353,14 +319,19 @@ def optimalPack(bats: list, voltage: int, id_only=False):
     For an optimal pack, we calculate it having to be connected like below, 3S
     of 2P or 3S2P:
 
-        + ----[+b_3-]--[+b_6-]--[+b_1-]---- -
-              [+b_7-]  [+b_2-]  [+b_4-]
+    ::
+
+        + ----(+b_3-]--(+b_6-]--(+b_1-]---- -
+               |   |    |   |    |   |
+              (+b_7-]  (+b_2-]  (+b_4-]
 
     Since there were 7 batteries, but only 6 can be used, ``b_5`` was the least
     capable and is left over.
 
     For this configuration, the pack connection config will be returned as
     a list of lists:
+
+    .. python::
 
         [
             [b_3, b_7],
@@ -371,16 +342,19 @@ def optimalPack(bats: list, voltage: int, id_only=False):
     And the extra left over will be a list of ``[c_5]``.
 
     Note that the ``config`` value returned will be the same format as for
-    `BatteryPack.config`. The only difference may be ``'conn`` list of
+    `BatteryPack.config`. The only difference may be ``conn`` list of
     `Battery` entries. If ``id_only`` is True, then this list will only contain
     the battery IDs as for the `BatteryPack` default. If is is False, each
     element in the serial string lists in ``conn`` will be the full `Battery`
-    entry as a dictionary. The second is form makes it easy to surface these
-    batteries on a UI, but needs to converted to IDs only for most other uses.
+    entry as a dictionary.
 
+    The second form makes it easy to surface these batteries on a UI where
+    richer battery info is needed. For storing connection config, only the
+    `Battery.id` is needed.
 
     Args:
-        bats: Query set of `Battery` entries to use for the pack
+        bats: Query set of `Battery` entries to use for the pack, as passed in
+            from `build` for example.
         voltage: Desired pack voltage as a multiple of `BatteryPack.NOM_V`
         id_only: If ``False`` (default), then the elements returned in the
             ``config`` and ``extra`` lists will be full `Battery` entries as
