@@ -173,13 +173,13 @@ To test that your migration will work correctly, follow this flow:
 * Clone the prod DB: `make db-clone-uat` - **NOTE** this can only be done with
     no open session to either DB
 * Make sure you have the docker dev instance running in another terminal: `make run`
-* Test the migration: `make test-migration` - this does the following:
+* Test the migration: `make test-deploy` - this does the following:
     * Drops any `_RC?` part from the version - this assumes you are on an RC
         release ready for the next prod version, and that the migration package
-        dir is for thie version.
+        dir is for this version.
     * Runs the `migrate.py` script in the current running container.
     * This will default to a dry run, and no migrations should succeed.
-    * Now run it again with dry run off: `make test-migration DRY_RUN=0`
+    * Now run it again with dry run off: `make test-deploy DRY_RUN=0`
 * When done, you can now restore your previous UAT DB with:
     * `make db-restore-uat`
     * `make db-drop-snapshot`
