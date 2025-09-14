@@ -72,19 +72,19 @@
       <caption>Pack</caption>
       <thead>
         <tr>
-          <th class="p">P</th>
           <th class="s">S</th>
+          <th class="p">P</th>
           <th>Battery ID</th>
           <th>Capacity</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-      {% for idx, serial in enumerate(pack_conn) %}
-        {% for b in serial %}
+      {% for idx, para in enumerate(pack_conn) %}
+        {% for b in para %}
         <tr>
-          <td class="p"></td>
-          <td class="s {{ 'odd' if idx%2 else 'even' }}"></td>
+          <td class="s"></td>
+          <td class="p {{ 'odd' if idx%2 else 'even' }}"></td>
           <td class="no_wrap">
             {{ b['bat_id'] }}
             {% if b['has_img'] %}
