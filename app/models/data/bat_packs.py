@@ -24,7 +24,6 @@ __all__ = [
     "getPack",
     "convertIDs",
     "getAvailable",
-    "packStructure",
     "build",
     "savePack",
 ]
@@ -291,74 +290,71 @@ def getAvailable(excl: list | None = None, raw_dates: bool = False):
                 yield datesToStrings(row)
 
 
-def packStructure(conf: list) -> str:
-    """
-    Returns a string defining the pack structure when given a connection
-    config.
-
-    ToDo: This function does not feel right here... should it be a method on
-    `BatteryPack` or even an actaul field on the `BatteryPack`?
-
-    The input is the `BatteryPack.config` list
-
-    If config is the empty string, it returns ``0S0P``
-
-    Conf is expected to a list of lists (or empty for no cells).
-
-    Each entry in the list is another list defining the ids for the battery in
-    that serial string.
-
-    * For only one battery it would look like: ``[[3]]`` - **1S1P**
-    * For two in series it would be: ``[[4,9]]`` - **2S1P**
-    * For two in parallel it would be ``[[5], [2]]`` - **1S2P**
-
-    Anything else will be one or more parallel connections of one or more
-    serial batteries in series.
-
-    The number of batteries in series is expected to be the same for all series
-    strings.
-    """
-    if not conf:
-        return "0S0P"
-
-    return f"{len(conf[0])}S{len(conf)}P"
-
-
 def optimalPack(bats: list, voltage: int, id_only=False):
     """
     Called from `build` after batteries have been validated to ensure we will
     only use available batteries for this pack.
 
     Build a battery pack to have a nominal voltage of ``voltage`` given a
-    list of `Battery` entries as ``bat_ids`` to use.
+    list of `Battery` entries to use.
 
-    If not enough batteries to make up the nominal voltage, the pack will be
-    empty.
+    If not enough batteries are available to make up the nominal voltage, the
+    pack will be empty.
 
-    The pack is built by breaking ``bats`` into a series or serially connected
-    strings, each of the given voltage. If there are more batteries left, then
-    more series strings will be constructed which are then connected in
-    parallel to boost the overall capacity.
+    First the serial count (S) is calculated by dividing the required pack
+    ``voltage`` by the nominal cells voltage (`BatteryPack.NOM_V`)
 
-    The pack will be built such that the series strings will be balanced as
-    close as possible in capacity. This means that the series strings should
-    become depleted fairly evenly so as to avoid any one string being left
-    to fully supply the load.
+    With the S count known, the available batteries will be grouped in
+    subgroups of parallel combos. The number of batteries in each of these
+    parallel packs will be the P count for pack.
 
-    Any batteries left over that can not be used to form another series string,
-    will be returned in the ``extra`` list on the returned dict.
+    Either S or P may be 1, depending on the pack voltage and the number of
+    batteries available.
+
+    For example, given ``bats`` as a list of 7 `Battery` entries with different
+    capacities, and a nominal pack voltage of 10.8 volt required, S will be
+    calculated as 3 (3 series connections) and P
+    as 2.
+
+    For an optimal pack, we calculate it having to be connected like below, 3S
+    of 2P or 3S2P:
+
+    ::
+
+        + ----(+b_3-]--(+b_6-]--(+b_1-]---- -
+               |   |    |   |    |   |
+              (+b_7-]  (+b_2-]  (+b_4-]
+
+    Since there were 7 batteries, but only 6 can be used, ``b_5`` was the least
+    capable and is left over.
+
+    For this configuration, the pack connection config will be returned as
+    a list of lists:
+
+    .. python::
+
+        [
+            [b_3, b_7],
+            [b_6, b_2],
+            [b_1, b_4],
+        ]
+
+    And the extra left over will be a list of ``[c_5]``.
 
     Note that the ``config`` value returned will be the same format as for
-    `BatteryPack.config`. The only difference may be ``'conn`` list of
+    `BatteryPack.config`. The only difference may be ``conn`` list of
     `Battery` entries. If ``id_only`` is True, then this list will only contain
     the battery IDs as for the `BatteryPack` default. If is is False, each
     element in the serial string lists in ``conn`` will be the full `Battery`
-    entry as a dictionary. The second is form makes it easy to surface these
-    batteries on a UI, but needs to converted to IDs only for most other uses.
+    entry as a dictionary.
 
+    The second form makes it easy to surface these batteries on a UI where
+    richer battery info is needed. For storing connection config, only the
+    `Battery.id` is needed.
 
     Args:
-        bats: Query set of `Battery` entries to use for the pack
+        bats: Query set of `Battery` entries to use for the pack, as passed in
+            from `build` for example.
         voltage: Desired pack voltage as a multiple of `BatteryPack.NOM_V`
         id_only: If ``False`` (default), then the elements returned in the
             ``config`` and ``extra`` lists will be full `Battery` entries as
@@ -375,7 +371,7 @@ def optimalPack(bats: list, voltage: int, id_only=False):
               'extra': [id,...],           # leftover cells
             }
     """
-    series_count = int(round(voltage / BatteryPack.NOM_V))  ### 1
+    series_count = int(round(voltage / BatteryPack.NOM_V))
 
     # If the series count is more than the number of available bat_ids, they
     # all go to extra
@@ -389,43 +385,49 @@ def optimalPack(bats: list, voltage: int, id_only=False):
             "extra": bats.dicts().get() if not id_only else [b.id for b in bats],
         }
 
-    # Sort batteries descending by capacity
-    bats = sorted(bats, key=lambda b: b.mah, reverse=True)  ### 1838, 1692
+    # The parallel string count depends on the number batteries available.
+    parallel_count = len(bats) // series_count
+    # Total batteries in the pack
+    pack_tot = parallel_count * series_count  ### 2
 
-    # Determine number of full parallel strings
-    total_bats = len(bats)  ### 2
-    parallel_count = total_bats // series_count  ### 2
-    max_pack_bats = parallel_count * series_count  ### 2
+    # Sort batteries descending by capacity
+    bats = sorted(bats, key=lambda b: b.mah, reverse=True)
 
     # Slice pack batteries and extras, and convert model entries to dicts
-    pack_bats = [model_to_dict(b) for b in bats[:max_pack_bats]]
-    extra_bats = [model_to_dict(b) for b in bats[max_pack_bats:]]
+    pack_bats = [model_to_dict(b) for b in bats[:pack_tot]]
+    extra_bats = [model_to_dict(b) for b in bats[pack_tot:]]
 
-    # Since pack_bats now containe the exact amount of batteries in the pack,
-    # and they are sorted in descending order, all we do now is chunk them up
-    # in contiguous sets of series chunks. These chunks are then placed in
-    # parallel to form the pack
-    para_strings = [
-        pack_bats[i : i + series_count] for i in range(0, len(pack_bats), series_count)
-    ]
+    # Initialize a bin for each set of parallel strings we will need.
+    bins = [{"sum": 0, "items": []} for _ in range(series_count)]
 
-    # Each series string is sorted in descending capacity order, and the
-    # capacity of a series string is the lowest of the capacities in the
-    # string. This for each series string, the last one in the list is the
-    # series max capacity.
-    # Then sum of these lowest series capacities form the total pack capacity
-    pack_cap = sum(ser[-1]["mah"] for ser in para_strings)
+    # Greedy assignment: largest to first parallel bin with smallest sum that
+    # has room
+    for bat in pack_bats:
+        # Find eligible bins (with len < parallel_count)
+        eligible = [b for b in bins if len(b["items"]) < parallel_count]
+        # Pick the eligible bin with smallest current sum
+        target = min(eligible, key=lambda b: b["sum"])
+        target["items"].append(bat)
+        target["sum"] += bat["mah"]
 
-    # Need to reduce para_strings and extra_bats to IDs only if id_only is True
+    # Sort the parallel bins from highest to lowest parallel capacity
+    bins.sort(key=lambda c: c["sum"], reverse=True)
+    # The pack capacity is that of the lowest parallel string
+    pack_cap = bins[-1]["sum"]
+
+    # Convert bins to lists of items
+    pack_conn = [b["items"] for b in bins]
+
+    # Need to reduce pack_conn and extra_bats to IDs only if id_only is True
     if id_only:
-        para_strings = [[b["id"] for b in ser] for ser in para_strings]
+        pack_conn = [[b["id"] for b in para] for para in pack_conn]
         extra_bats = [b["id"] for b in extra_bats]
 
     return {
         "capacity": pack_cap,
         "config": {
-            "struct": packStructure(para_strings),
-            "conn": para_strings,
+            "struct": f"{series_count}S{parallel_count}P",
+            "conn": pack_conn,
         },
         "extra": extra_bats,
     }
