@@ -24,6 +24,22 @@
           href="{{ e['soc_uid'] }}/measure/"
           hx-push-url="false"
         >{{ e['soc_uid'] }}</a>
+
+        <a href="/event_summary/?soc_uid={{e['soc_uid']}}">
+          <svg
+            class='event-eye'
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <use xlink:href="/feather-sprite.svg#eye" />
+          </svg>
+        </a>
+
         {% endif %}
         </td>
         <td>{{ e['soc_state'] }}</td>

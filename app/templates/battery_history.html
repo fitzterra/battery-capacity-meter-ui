@@ -54,7 +54,25 @@
     {% for h in hist %}
     <tr>
       <td>{{ h['cap_date'] }}</td>
-      <td><a href="{{ h['soc_uid'] }}/">{{ h['soc_uid'] }}</a></td>
+      <td>
+        <a href="{{ h['soc_uid'] }}/">{{ h['soc_uid'] }}</a>
+
+        <a href="/event_summary/?soc_uid={{h['soc_uid']}}">
+          <svg
+            class='event-eye'
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <use xlink:href="/feather-sprite.svg#eye" />
+          </svg>
+        </a>
+
+      </td>
       <td>{{ h['bc_name'] }}</td>
       <td><strong>{{ h['mah'] }}mAh</strong></td>
       <td>{{ h['accuracy'] }}%</td>

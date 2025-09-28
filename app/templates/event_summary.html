@@ -1,0 +1,34 @@
+{% args events, soc_uid %}
+{% if events %}
+<table data-name="events_sum" style="font-size: smaller">
+  <caption>SoC events summary for SoC UID: {{soc_uid}}</caption>
+    <thead>
+        <tr>
+            <th style="text-align: left">Time</th>
+            <th>Bat V</th>
+            <th>Current</th>
+            <th>Charge</th>
+            <th style="text-align: left">State</th>
+            <th>Cycle</th>
+            <th>Period</th>
+            <th>Shunt</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for e in events %}
+      <tr>
+        <td style="text-align: left">{{ e['created'] }}</td>
+        <td>{{ e['bat_v'] }}mV</td>
+        <td>{{ e['current'] }}mA</td>
+        <td>{{ e['mah'] }}mAh</td>
+        <td style="text-align: left">{{ e['state'] }}/{{ e['soc_state'] }}</td>
+        <td>{{ e['soc_cycle'] }}</td>
+        <td>{{ e['soc_cycle_period'] }}s</td>
+        <td>{{ e['shunt'] }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No events found for SoC UID {{soc_uid}}</p>
+{% endif %}
