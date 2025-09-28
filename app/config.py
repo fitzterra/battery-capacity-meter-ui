@@ -74,7 +74,7 @@ def envOrDefault(key: str, default: Any = None, conv: callable = None) -> Any:
 APP_DOCS_DIR = Path().absolute() / "doc/app-docs"
 # This is the path relative to the root where the app API docs should be made
 # available.
-APP_DOCS_PATH = "app-docs"
+APP_DOCS_PATH = "docs"
 # Whether the app docs should be mounted or not
 MOUNT_APP_DOCS = True
 
