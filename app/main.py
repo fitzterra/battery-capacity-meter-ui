@@ -21,6 +21,10 @@ from .events import (
     events,
     BASE_URL as BASE_EVENTS,
 )
+from .events_summary import (
+    events_sum,
+    BASE_URL as BASE_EVENTS_SUM,
+)
 from .batteries import (
     bat,
     BASE_URL as BASE_BAT,
@@ -71,6 +75,7 @@ Response.default_content_type = "text/html"
 # Set up the main and all sub apps
 app = Microdot()
 app.mount(events, url_prefix=BASE_EVENTS)
+app.mount(events_sum, url_prefix=BASE_EVENTS_SUM)
 app.mount(bat, url_prefix=BASE_BAT)
 app.mount(bcm_state, url_prefix=BASE_BCM_STATE)
 app.mount(calib, url_prefix=BASE_CALIB)
