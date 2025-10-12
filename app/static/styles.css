@@ -59,6 +59,10 @@ a.truncate {
     max-width: none;
 }
 
+.hidden {
+    display: none !important;
+}
+
 
 /* Battery search input in header */
 form .battery-search {
@@ -305,6 +309,29 @@ table th {
 img.small-bat-img {
     height: 1rem;
 }
+
+/**
+ * Battery History view
+ **/
+/* -- Dimension editing -- */
+span.dim-block svg.button {
+    cursor: pointer;
+}
+span.dim-block svg.button.save {
+    color: var(--pico-color-green-300);
+}
+span.dim-block svg.button.cancel {
+    color: var(--pico-color-red-350);
+}
+span.dim-block form.dim-edit {
+    display: inline-block;
+}
+span.dim-block form.dim-edit input {
+    width: 6rem;
+    height: 1.5rem;
+    padding: 0.4rem;
+}
+/* -- END: Dimension editing -- */
 
 /**
  * BCM state view

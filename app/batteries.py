@@ -53,6 +53,7 @@ from app.models.data import (
     getBatteryDetails,
     getKnownBatteries,
     getBatteryHistory,
+    updateBattertField,
     getBatMeasurementByUID,
     getBatMeasurementPlotData,
 )
@@ -61,9 +62,7 @@ from .config import (
     BAT_IMG_MAX_SZ,
 )
 
-from .index import (
-    renderIndex,
-)
+from .index import renderIndex, flashMessage
 
 # Our local logger
 logger = logging.getLogger(__name__)
@@ -215,6 +214,7 @@ async def batHistory(req, bat_id):
     hist = None
     # First get the battery current details
     batt = getBatteryDetails(bat_id)
+
     # We will either 1 or 0 batteries
     if not batt:
         err = f"No battery found with ID {bat_id}"
@@ -234,6 +234,36 @@ async def batHistory(req, bat_id):
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
     return renderIndex(content)
+
+
+@bat.post("/<bat_id>/")
+async def batUpdate(req, bat_id):
+    """
+    Allows updating some `Battery` fields.
+    """
+    logger.info("Battery field update call: %s", req.form)
+
+    # We should have only one field in the form
+    if len(req.form.keys()) > 1:
+        return flashMessage(
+            "Invalid data - more than one field to update.",
+            "error",
+        )
+
+    # Get the field in the MultiDict
+    field, val = list(req.form.items())[0]
+    # We will always only have one value, and if not we force it to the first
+    # one
+    val = val[0]
+
+    # Try the update
+    res = updateBattertField(bat_id, field, val)
+
+    # We expect to always be called from HTMX, so we return and HTMX snippet
+    if res is True:
+        return flashMessage(f"Field {field} updated successfully", "success")
+
+    return flashMessage(f"Error updating battery: {res}")
 
 
 @bat.route("/<bat_id>/img", methods=["GET", "DELETE"])
