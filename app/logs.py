@@ -23,7 +23,7 @@ from app.models.data import (
 
 from .index import (
     renderIndex,
-    errorResponse,
+    flashMessage,
 )
 
 # Our local logger
@@ -78,20 +78,20 @@ def deleteLogs(req):
     # Check if the format matches the expected timestamp pattern
     ts_pattern = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
     if not re.match(ts_pattern, before_date):
-        return errorResponse(f"Invalid timestamp format: {before_date}")
+        return flashMessage(f"Invalid timestamp format: {before_date}", "error")
 
     # Convert the string to a datetime object if valid
     try:
         before_date = datetime.strptime(before_date, "%Y-%m-%d %H:%M:%S")
     except ValueError:
-        return errorResponse(f"Invalid timestamp value: {before_date}")
+        return flashMessage(f"Invalid timestamp value: {before_date}", "error")
 
     logging.info("  Logs before %s to deleted", before_date)
 
     res = delLogs(before_date)
 
     if not res["success"]:
-        return errorResponse(res["msg"])
+        return flashMessage(res["msg"], "error")
 
     logging.info("  Logs delete result: %s", res)
     # Redirect to '/logs/'

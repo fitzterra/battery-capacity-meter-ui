@@ -617,16 +617,14 @@ table td.logs-nav a.inactive {
     color: gray;
 }
 
-/* The global error flasher div */
-/* Base styles for the error flash */
-.err-flash {
+/* -- END: Message flasher -- */
+/* Base styles for the message flash */
+.msg-flash {
   display: none; /* Initially hidden */
   padding: 0.8rem;
   margin: 0 0 0.5rem;
-  border: 1px solid var(--pico-color-red-400);
+  border: 1px solid var(--pico-primary-border);
   border-radius: var(--pico-border-radius);
-  background-color: var(--pico-color-red-350);
-  color: var(--pico-color-red-950);
   max-height: 0;
   overflow: hidden;
   transform: translateY(10px); /* Start below */
@@ -634,13 +632,27 @@ table td.logs-nav a.inactive {
 }
 
 /* When the error message is shown */
-.err-flash.visible {
+.msg-flash.visible {
   display: block;
   max-height: 200px; /* Allow the content to expand */
   transform: translateY(0); /* Reset the transform */
   transition: transform 0.8s ease, max-height 0.8s ease; /* Smooth expand */
   cursor: pointer;
 }
+
+/* Here we can add colors and visuals based on the classes add to the child
+ * element for the main flash container */
+.msg-flash:has(.error) {
+  background-color: var(--pico-color-red-350);
+  color: var(--pico-color-red-950);
+  border-color: var(--pico-color-red-400);
+}
+.msg-flash:has(.success) {
+  background-color: var(--pico-color-green-350);
+  color: var(--pico-color-green-950);
+  border-color: var(--pico-color-green-400);
+}
+
 
 /* Slide and shrink animation for disappearing */
 @keyframes slideOut {
@@ -657,9 +669,10 @@ table td.logs-nav a.inactive {
 }
 
 /* Class to trigger slide-out animation */
-.err-flash.slide-out {
+.msg-flash.slide-out {
   animation: slideOut 0.8s forwards ease-out;
 }
+/* -- END: Message flasher -- */
 
 /* The X mark to delte a single record in the Events Summary display for all
  * soc events for a battery. This is used to delete stray charge events that

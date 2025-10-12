@@ -19,7 +19,6 @@ from app.models.data import getSummary
 
 from .index import (
     renderIndex,
-    errorResponse,
 )
 
 # The base URL for this sub app. This should be without the trailing /
