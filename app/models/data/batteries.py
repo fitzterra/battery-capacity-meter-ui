@@ -21,6 +21,7 @@ from ..models import db, Battery, BatteryImage, BatCapHistory, BatteryPack
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "getBatteryDimensions",
     "getKnownBatteries",
     "getBatteryDetails",
     "getBatteryHistory",
@@ -30,6 +31,34 @@ __all__ = [
     "getBatMeasurementByUID",
     "getBatMeasurementPlotData",
 ]
+
+
+def getBatteryDimensions() -> list:
+    """
+    Returns list of unique values from `Battery.dimension` for use in
+    selection lists, etc.
+
+    Returns:
+        A list like:
+
+        .. python::
+            [
+                '18650',    # Cylinder, 18mm dia, 650mm high
+                'P055780',  # Prismatic (rectangular) 5mm thick, 57x80 mm
+            ]
+
+    """
+    with db.connection_context():
+        query = (
+            Battery.select(Battery.dimension)
+            .distinct()
+            .where(Battery.dimension != None)
+            .order_by(Battery.dimension)
+        )
+
+        # We return the results as tuples, but then have to pick out the first
+        # (only) element to flatten this into a list of sizes.
+        return [d[0] for d in query.tuples()]
 
 
 def getKnownBatteries(
