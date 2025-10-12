@@ -28,6 +28,7 @@ __all__ = [
     "getBatteryImage",
     "setBatteryImage",
     "delBatteryImage",
+    "updateBattertField",
     "getBatMeasurementByUID",
     "getBatMeasurementPlotData",
 ]
@@ -420,6 +421,72 @@ def delBatteryImage(bat_id: str):
             return f"Error deleting battery image for battery with ID {bat_id}"
 
         return True
+
+
+def updateBattertField(bat_id: str, field: str, value: str):
+    """
+    Allows updating specific `Battery` fields.
+
+    Only certain fields are allowed to be updated. Currently these are:
+
+    * ``dimension``: This allows updating the `Battery.dimension` field with
+      the ``value`` supplied.
+    * ``placement``: This allows updating the `Battery.placement` field with
+      the ``value`` supplied.
+
+    Any other field will return and error condition.
+
+    Args:
+        bat_id: The `Battery.bat_id` for which the field need to be updated.
+        field: The field name to be updated.
+
+    Returns:
+        An error string if the battery is not found, or the ``field`` or
+        ``value`` is invalid, or there was and error updating the field.
+        True if the update was successful.
+    """
+    # A map of field names to upgrade, and values being an optional convertion
+    # function to convert value to a suitable value for the field if needed.
+    fields_map = {
+        "dimension": None,  # No conversion needed
+        "placement": None,  # No conversion needed
+    }
+
+    if field not in fields_map:
+        err = f"Field {field} is not a valid updateable field."
+        logger.error("Can not update Battery field: %s", err)
+        return err
+
+    # Convert the field if needed.
+    converter = fields_map[field]
+    final_val = converter(value) if converter else value
+
+    try:
+        with db.connection_context():
+            bat = Battery.select().where(Battery.bat_id == bat_id)
+            # We will either 1 or 0 batteries
+            if not bat.count():
+                err = f"Battery with ID {bat_id} not found."
+                logger.debug(err)
+                return err
+
+            # Get the battery instance
+            bat = bat.get()
+
+            # Update the field
+            setattr(bat, field, final_val)
+            bat.save()
+    except Exception as exc:
+        logger.error(
+            "Error update Battery (%s) field '%s' to '%s' - Error: %s",
+            bat,
+            field,
+            value,
+            exc,
+        )
+        return f"Error updating {field} for battery with ID {bat_id}"
+
+    return True
 
 
 def getBatMeasurementByUID(bat_id: str, uid: str, raw_dates: bool = False) -> dict:
