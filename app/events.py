@@ -50,7 +50,7 @@ from app.models.utils import measureSummary, setCapacityFromSocUID
 
 from .index import (
     renderIndex,
-    errorResponse,
+    flashMessage,
 )
 
 # The base URL for this sub app. This should be without the trailing /
@@ -142,7 +142,7 @@ async def cleanDanglingEvents(req):
 
     # If the delete failed for any reason, we flash the error
     if not res["success"]:
-        return errorResponse(res["msg"])
+        return flashMessage(res["msg"], "error")
 
     # Delete was successful. Add an Hx-redirect header to cause HTMX to do a
     # browser redirect to the new battery URL
@@ -242,7 +242,7 @@ async def delBatEvents(req, bat_id):
 
     # If the delete failed for any reason, we flash the error
     if not res["success"]:
-        return errorResponse(res["msg"])
+        return flashMessage(res["msg"], "error")
 
     # Delete was successful. Add an Hx-redirect header to cause HTMX to do a
     # browser redirect to the new battery URL
@@ -285,7 +285,7 @@ async def delExtraEvent(req, bat_id, soc_id):
     res = delExtraSoCEvent(bat_id, soc_id)
 
     if not res["success"]:
-        return errorResponse(res["msg"])
+        return flashMessage(res["msg"], "error")
 
     return redirect(f"{BASE_URL}/{bat_id}/")
 
@@ -331,7 +331,7 @@ async def uidEvents(req, bat_id, uid):
     summary = measureSummary(uid, bat_id, incl_end_events=True)
 
     if not summary["success"]:
-        return errorResponse(summary["msg"])
+        return flashMessage(summary["msg"], "error")
 
     content = Template("events_measure.html").render(
         sum=summary, bat_id=bat_id, uid=uid
@@ -382,7 +382,7 @@ async def setUIDHistory(req, bat_id, uid):
     res = setCapacityFromSocUID(uid, bat_id)
 
     if not res["success"]:
-        return errorResponse(res["msg"])
+        return flashMessage(res["msg"], "error")
 
     # Change was successful. Add an Hx-redirect header to cause HTMX to do a
     # browser redirect to the new battery URL
@@ -424,7 +424,7 @@ async def delUIDEvents(req, bat_id, uid):
     res = delBatUIDEvents(bat_id, uid)
 
     if not res["success"]:
-        return errorResponse(res["msg"])
+        return flashMessage(res["msg"], "error")
 
     return (
         "<article class='success t-center'>"

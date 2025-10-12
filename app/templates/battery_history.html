@@ -10,6 +10,117 @@
     <li><strong>Battery ID</strong>: {{ bat['bat_id'] }}</li>
     <li><strong>Capacity</strong>: {{ bat['mah'] }}mAh</li>
     <li><strong>Measure Date</strong>: {{ bat['cap_date'] }}</li>
+    <li>
+      <strong>Dimension</strong>:
+      <!-- Block to manage inline editing of the dimension -->
+      <span
+        class="dim-block"
+        _="-- Submit the form when clicking the save SVG
+           on click from .save in me
+              trigger submit() on the <form/> in me
+           end
+
+           -- Hide the edit form and show the dimension value on clicking
+           -- cancel.
+           on click from .cancel in me
+              add .hidden to .dim-edit
+              remove .hidden from .dim-value
+            end
+
+           -- Clicking the edit button, it will go fetch a list of currently
+           -- known battery dimensions, and swap it into the .dims-list datalist.
+           -- After this has nee swapped in, is our cue to then hide the
+           -- .dim-value and show the edit form for editing the value.
+           on htmx:afterSwap from .dims-list
+             add .hidden to .dim-value
+             remove .hidden from .dim-edit
+           end
+
+           -- When we return from submitting the form, we swap the edit and
+           -- view dim element back again.
+           on htmx:afterRequest from .dim-edit
+              put the value of the <input/> in .dim-edit into .val in .dim-value
+              add .hidden to .dim-edit
+              remove .hidden from .dim-value
+           end
+        "
+      >
+
+        <!-- Normal dimension display mode, with edit icon -->
+        <span class="dim-value">
+          <span class="val">{{ bat['dimension'] or '(not set)' }}</span>
+          &nbsp;
+          <svg
+            class='edit-dim button'
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            hx-trigger="click"
+            hx-get="/bat/knownDims"
+            hx-target=".dims-list"
+            hx-swap="innerHTML"
+          >
+            <use xlink:href="/feather-sprite.svg#edit" />
+          </svg>
+        </span>
+
+        <!-- The edit mode for the dimension - shown when the edit icon is clicked -->
+        <form
+          class="dim-edit hidden"
+          hx-post=""
+        >
+
+          <input 
+              type="text"
+              name="dimension"
+              value="{{bat['dimension'] or ''}}"
+              list="dims-list"
+              required
+          >
+          <datalist
+              id="dims-list"
+              class="dims-list"
+          >
+          </datalist>
+
+          &nbsp;
+
+          <svg
+            class='save button'
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <use xlink:href="/feather-sprite.svg#check-square" />
+          </svg>
+
+          &nbsp;
+
+          <svg
+            class='cancel button'
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <use xlink:href="/feather-sprite.svg#x-square" />
+          </svg>
+        </form>
+
+      </span>
+    </li>
+    <li><strong>Placement</strong>: {{ bat['placement'] or '' }}</li>
   </ul>
 
   <div
