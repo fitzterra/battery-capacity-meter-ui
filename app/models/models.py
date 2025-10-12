@@ -206,6 +206,27 @@ class Battery(BaseModel):
              `BatCapHistory.mah` value for the most recent history entry.
         pack: If this battery is part of a `BatteryPack`, this would an FK to
             that `BatteryPack`
+        dimension: A freeform text field for the battery dimension.
+
+            This will generally be the industry standard dimension like "18650",
+            etc., but the flat rectangular batteries are referred to as
+            "prismatic" cells (prismatic in engineering means a box-like object
+            with parallel faces).
+
+            These prismatic cells normally use 5 or 6 digits that describe the
+            cell’s outer dimensions as ``abcdef`` where:
+
+            * ab = thickness in millimeters (× 0.1 mm for some formats)
+            * cd = width in millimeters
+            * ef = length in millimeters
+
+            It will be good to use the formal ``Pabcdef`` for these cells, and
+            just the standard diameter+length for round cells.
+
+        placement: A Freeform text field that can be used indicate where this
+            cells is currently placed or in use. If it's already in a
+            `BatteryPack`, this field should not be used.
+
     """
 
     id = AutoField()
@@ -218,6 +239,8 @@ class Battery(BaseModel):
     pack = ForeignKeyField(
         BatteryPack, backref="cells", null=True, on_delete="SET NULL"
     )
+    dimension = TextField(null=True)
+    placement = TextField(null=True)
 
     class Meta:
         """
