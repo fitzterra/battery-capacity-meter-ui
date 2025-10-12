@@ -19,7 +19,6 @@ from app.models.data import getSummary
 
 from .index import (
     renderIndex,
-    errorResponse,
 )
 
 # The base URL for this sub app. This should be without the trailing /
@@ -32,12 +31,12 @@ events_sum = Microdot()
 @events_sum.get("/")
 async def showSummary(req):
     """
-    Generates a summary view of `SoCEvent` entries for a given `soc_uid`.
+    Generates a summary view of `SoCEvent` entries for a given ``soc_uid``.
 
     The summary will show the first and last few entries, and a few entries
     around each transition between charge and discharge.
 
-    The `soc_uid` is expected in a query parameter called ``soc_uid``.
+    The ``soc_uid`` is expected in a query parameter called ``soc_uid``.
     The number of events around transitions and start and end can be set with
     an ``event_count`` query parameter, but defaults to 5 if not supplied.
 

@@ -303,55 +303,6 @@ function initChartHandler() {
     Chart.register(ChartZoom);
 }
 
-// ---- Error Flash Handling ----
-function initErrorHandler() {
-    // The error flash container
-    const errorFlash = document.querySelector('.err-flash');
-
-    if (errorFlash) {
-        // Add an event listener to trigger every time after content was loaded
-        // into this container.
-        errorFlash.addEventListener('htmx:afterSwap', function (evt) {
-            // Show the error container by adding the "visible" class and
-            // clearing any previous slide-out state
-            errorFlash.classList.add('visible');
-            errorFlash.classList.remove('slide-out');
-
-            // Clear any existing timer
-            if (errorFlash._fadeoutTimer) {
-                clearTimeout(errorFlash._fadeoutTimer);
-            }
-
-            // Start new timer to trigger the slide-out animation
-            errorFlash._fadeoutTimer = setTimeout(() => {
-                errorFlash.classList.add('slide-out');
-                errorFlash._fadeoutTimer = null;
-            }, 5000);
-        });
-
-        // Manual dismiss (click to dismiss the error)
-        errorFlash.addEventListener('click', function () {
-             // Stop the timer if the user clicks and it still exists
-            if (errorFlash._fadeoutTimer) {
-                clearTimeout(errorFlash._fadeoutTimer);
-                errorFlash._fadeoutTimer = null;
-            }
-            // Trigger the slide-out animation
-            errorFlash.classList.add('slide-out');
-        });
-
-        // Listen for the completion of the slide-out animation
-        errorFlash.addEventListener('animationend', function () {
-            if (errorFlash.classList.contains('slide-out')) {
-                // The slide-out animation has finished. Reset the state
-                errorFlash.classList.remove('visible');
-                errorFlash.classList.remove('slide-out');
-            }
-        });
-
-    }
-}
-
 // ---- Battery Image Capture Handling ----
 function initBatImgCapModal() {
     const modal = document.querySelector('dialog.bat-img');
@@ -915,7 +866,6 @@ function persistantSorting() {
 // ---- Initialize everything ----
 function init() {
     initChartHandler();
-    initErrorHandler();
     initBatImgCapModal();
     initBatLabelScan();
     persistantSorting();

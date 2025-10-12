@@ -6,15 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
 
-    <!-- Include Pico.css -->
+    <!-- Include Pico.css : https://picocss.com/ -->
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.{{ theme + "." if theme else "" }}min.css"
     >
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css" >
     <link rel="stylesheet" href="/styles.css">
 
-    <!-- HTMX -->
+    <!-- HTMX : https://htmx.org/ -->
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+
+    <!-- Hyperscript: https://hyperscript.org/ -->
+    <script src="https://unpkg.com/hyperscript.org@0.9.14"></script>
 
     <!-- Charting apps -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
@@ -112,7 +115,20 @@
 
       <!-- Main Content Area -->
       <main class='t-center'>
-        <div class="err-flash"></div>
+        <div
+          class="msg-flash"
+          _="on htmx:afterSwap
+                add .visible to me
+                  then wait for click or 5000 ms
+                  then add .slide-out to me
+                -- The slide out anumation will now start, and then we wait for
+                -- it to complete
+                on animationend
+                  remove .visible from me
+                  remove .slide-out from me
+             end
+          "
+        ></div>
         <div class="main-content">
           {% if content %} {{ content }} {% else %}
           <div class="welcome t-left">

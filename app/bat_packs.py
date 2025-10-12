@@ -48,7 +48,7 @@ from app.models.data import (
 
 from .index import (
     renderIndex,
-    errorResponse,
+    flashMessage,
 )
 
 # Our local logger
@@ -188,7 +188,7 @@ def packSave(req, pack_id):
 
     # If the save failed for any reason, we flash the error
     if not res["success"]:
-        return errorResponse(res["msg"])
+        return flashMessage(res["msg"], "error")
 
     # Save was successful. Add an Hx-redirect header to cause HTMX to do a
     # browser redirect to the Pack URL
