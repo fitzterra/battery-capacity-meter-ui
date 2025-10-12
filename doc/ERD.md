@@ -43,14 +43,16 @@ battery {
    VARCHAR(20) bat_id 
    DATE cap_date 
    TIMESTAMP created 
+   TEXT dimension 
    INTEGER mah 
    TIMESTAMP modified 
    INTEGER pack_id 
+   TEXT placement 
 }
 battery_pack {
  INTEGER id PK
    INTEGER capacity 
-   VARCHAR(8) config 
+   JSON config 
    TIMESTAMP created 
    VARCHAR(200) desc 
    TIMESTAMP modified 

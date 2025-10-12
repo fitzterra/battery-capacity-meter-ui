@@ -49,9 +49,11 @@ from app.models.data import (
     getBatteryImage,
     setBatteryImage,
     delBatteryImage,
+    getBatteryDimensions,
     getBatteryDetails,
     getKnownBatteries,
     getBatteryHistory,
+    updateBattertField,
     getBatMeasurementByUID,
     getBatMeasurementPlotData,
 )
@@ -60,9 +62,7 @@ from .config import (
     BAT_IMG_MAX_SZ,
 )
 
-from .index import (
-    renderIndex,
-)
+from .index import renderIndex, flashMessage
 
 # Our local logger
 logger = logging.getLogger(__name__)
@@ -127,6 +127,63 @@ async def batteries(req):
     return renderIndex(content)
 
 
+@bat.get("/knownDims")
+async def knownBatteryDimension(req):
+    """
+    Returns a list of all known unique `Battery.dimension` values by calling
+    `getBatteryDimensions`.
+
+    The default is to return these as an HTML snippet for swapping into a
+    ``<datalist>`` element. THis ``<datalist>`` would then normally be linked
+    to and ``<input>`` element (via the input's ``list`` attribute. The input
+    would normally be a test input which allows entering new values, or
+    selecting one from the linked ``<datalist>`` options.
+
+    The other option is return a JSON list of dimension.
+
+    This output format is controller by a ``format`` query option
+    like in ``../?format=list`` with these options:
+
+    * ``datalist``: The default and returns ``application/html`` content type
+      as::
+
+        <option value="18650"></option>
+        <option value="P055780"></option>
+
+    * ``list``: Returns it a list of strings in JSON format with
+      ``application/json`` as content type.
+
+    Invalid format values will result in a 400 error.
+
+    Args:
+        req: The request object, optionally with a ``format`` element in
+            ``req.args`` if using the ``...?format=???`` query arg.
+
+    Returns:
+        See above
+    """
+    # Get the output format, defaulting to `datalist`
+    fmt = req.args.get("format", "datalist")
+
+    # Validate the format
+    if fmt not in ["datalist", "list"]:
+        return f"Invalid output format: {fmt}", 400
+
+    # Get the dimension
+    dims = getBatteryDimensions()
+
+    # For a list format, we can return the result as is - Microdot will auto
+    # add the application/json content type
+    if fmt == "list":
+        return dims
+
+    # For now the only other option is the data list format
+    # We create a string of lines as <option value='{dim}'></option> with each
+    # line terminated by a newline.
+    # Microdot will auto set the content type to text/html
+    return "\n".join(f'<option value="{d}"></option>' for d in dims)
+
+
 @bat.get("/<bat_id>/")
 async def batHistory(req, bat_id):
     """
@@ -157,6 +214,7 @@ async def batHistory(req, bat_id):
     hist = None
     # First get the battery current details
     batt = getBatteryDetails(bat_id)
+
     # We will either 1 or 0 batteries
     if not batt:
         err = f"No battery found with ID {bat_id}"
@@ -176,6 +234,36 @@ async def batHistory(req, bat_id):
     # This is not a direct HTMX request, so we it must an attempt to render the
     # full URL, so we render the full site including the part template.
     return renderIndex(content)
+
+
+@bat.post("/<bat_id>/")
+async def batUpdate(req, bat_id):
+    """
+    Allows updating some `Battery` fields.
+    """
+    logger.info("Battery field update call: %s", req.form)
+
+    # We should have only one field in the form
+    if len(req.form.keys()) > 1:
+        return flashMessage(
+            "Invalid data - more than one field to update.",
+            "error",
+        )
+
+    # Get the field in the MultiDict
+    field, val = list(req.form.items())[0]
+    # We will always only have one value, and if not we force it to the first
+    # one
+    val = val[0]
+
+    # Try the update
+    res = updateBattertField(bat_id, field, val)
+
+    # We expect to always be called from HTMX, so we return and HTMX snippet
+    if res is True:
+        return flashMessage(f"Field {field} updated successfully", "success")
+
+    return flashMessage(f"Error updating battery: {res}")
 
 
 @bat.route("/<bat_id>/img", methods=["GET", "DELETE"])
