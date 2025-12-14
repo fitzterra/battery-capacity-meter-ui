@@ -441,7 +441,7 @@ form.pack_build fieldset {
     border: 1px solid var(--pico-primary-underline);
 	border-radius: var(--pico-border-radius);
     padding: 0 0.5rem;
-    width: 48%;
+    width: fit-content;
     display: inline-block;
     margin: 0 0.5%;
     vertical-align: top;
@@ -457,7 +457,6 @@ form.pack_build fieldset.pack_def label {
 }
 form.pack_build fieldset.pack_def label span {
     display: inline-block;
-    width: 22%;
     font-size: 0.9rem;
 }
 form.pack_build fieldset.pack_def input,
@@ -476,6 +475,14 @@ form.pack_build fieldset.pack_def textarea {
 form.pack_build fieldset.pack_def div.grid a {
     height: fit-content;
 }
+/* Remove left and right margins from field sets */
+form.pack_build fieldset.pack_def {
+    margin-left: 0px;
+}
+form.pack_build fieldset.cells {
+    margin-right: 0px;
+}
+
 
 /* Global table configs inside the cells selection fieldset */
 fieldset.cells table {
@@ -525,6 +532,13 @@ fieldset.cells p.up_down_arrow {
     margin: 0px;
     line-height: 3rem;
     color: var(--pico-secondary-focus);
+}
+/* The search field in the first row */
+fieldset.cells td input.search-input {
+    height: 1.5rem;
+    padding: 1rem;
+    padding-inline-start: calc(var(--pico-form-element-spacing-horizontal) + 1.75rem);
+    margin: 1rem 0;
 }
 
 /* Pack config table */
