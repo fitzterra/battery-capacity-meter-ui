@@ -136,11 +136,16 @@
 
     <p class="up_down_arrow">↕</p>
 
-    <table data-name="build_avail" class="avial sortable">
+    <table
+      data-name="build_avail"
+      class="avial sortable searchable"
+      data-sb-input-class="search-input"
+    >
       <caption>Available Batteries</caption>
       <thead>
         <tr>
           <th>Battery ID</th>
+          <th>Dim</th>
           <th class="mah">Capacity</th>
           <th class="acc">Accuracy</th>
           <th></th>
@@ -155,6 +160,7 @@
             <img src="/bat/{{ b['bat_id'] }}/img">
             {% endif %}
           </td>
+          <td>{{ b['dimension'] or '' }}</td>
           <td
             class="mah"
             data-sort="{{b['mah']}}"
