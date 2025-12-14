@@ -309,6 +309,21 @@ table th {
 img.small-bat-img {
     height: 1rem;
 }
+/* Override searchable default CSS */
+/* Change the actual icon. */
+table.searchable::before {
+    content: var(--pico-icon-search);
+}
+/* Remove border from the td around the search input that pops up.
+ * NOTE: The search-input value is set on the table as:
+ *          data-sb-input-class="search-input"
+ * which will then add this class to the search input element from where we can
+ * travel up to find the td on which we need to remove the borders.
+ */
+td:has(> input.search-input) {
+    border: none;
+}
+
 
 /**
  * Battery History view
