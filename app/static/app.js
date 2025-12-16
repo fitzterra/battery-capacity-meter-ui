@@ -710,6 +710,11 @@ function initBatLabelScan() {
         const context = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+        // We need to get this number of consecutive matches to consider it a
+        // good match.
+        const matches = 3;
+        // Counts the number of consecutive matches
+        let match_cnt = 0;
 
         // The OCR test we get back
         let text = '';
@@ -737,11 +742,29 @@ function initBatLabelScan() {
             const match = text.match(labelPattern);
 
             if (match) {
-                console.log("Matched ID:", match[1]);
-                // We matched the label pattern. Set label to the match and
-                // exit
-                label = match[1];
-                break;
+                console.log(`Matched ID: ${match[1]}, ${match_cnt}/${matches}`);
+
+                // If it's the first match, set the label
+                if (match_cnt === 0) {
+                    label = match[1];
+                }
+
+                // If it's not the same label as last time, reset the counters
+                // and label
+                if (label != match[1]) {
+                    label  = null;
+                    match_cnt = 0;
+                    continue;
+                }
+
+                // Same label, so inc match_cnt
+                match_cnt++;
+
+                // All consecutive matches?
+                if (match_cnt == matches) {
+                    // Now we can break
+                    break;
+                }
             }
             // Sleep for a bit
             await sleep(50);
