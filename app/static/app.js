@@ -844,6 +844,27 @@ function persistantSorting() {
     );
   });
 
+
+  // We can not do a simple th.click() on the table to simulate a mouse click
+  // for setting the sort order if we are also using the searchable plugin. If
+  // this is done, it will automatically toggle the search input open due to
+  // searchable expecting it's click coordinates to be outside the table, and
+  // th.click will set the coordinates to (0,0) which will be outside the
+  // table. See the issues raised here: https://github.com/tofsjonas/searchable/issues/2
+  // What we will do is to dispatch an click event to the th element passed in,
+  // and ensure the mouse coordinates are inside the th element, and thus
+  // inside the table so the searchable input does not toggle.
+  function clickTH(th) {
+    const rect = th.getBoundingClientRect()
+
+    th.dispatchEvent(new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2
+    }))
+  }
+
   // Restore saved sort state
   function restoreTableSort(table) {
     const tableName = table.dataset.name;
@@ -857,13 +878,13 @@ function persistantSorting() {
     if (!th) return;
 
     // The only way to sort is to simulate the click on the th column.
-    th.click(); // First click to sort
+    clickTH(th); // First click to sort in default order
     const currentDirection = th.getAttribute('aria-sort');
     const needsToggle =
       (direction === 'desc' && currentDirection !== 'descending') ||
       (direction === 'asc' && currentDirection !== 'ascending');
 
-    if (needsToggle) th.click(); // Second click if needed
+    if (needsToggle) clickTH(th); // Second click if needed
   }
 
   // Restores all sortable table sort orders on a fresh DOM load or after an
