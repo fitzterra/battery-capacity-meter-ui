@@ -14,7 +14,7 @@ Attributes:
 .. image:: img/ERD.png
     :width: 100%
 
-.. _peewee: http://docs.peewee-orm.com/en/latest/index.html
+.. _peewee: https://docs.peewee-orm.com/en/latest/index.html
 """
 
 import logging
@@ -742,6 +742,40 @@ class BatCapHistory(BaseModel):
                 plot_data = list(query.dicts())
 
         return (st, cn, plot_data)
+
+
+class InternalResistance(BaseModel):
+    """
+    Battery internal history (IR) entry.
+
+    Each entry records one IR measurement for a `Battery`. A `Battery` may have
+    more than one IR measurement in this history table.
+
+    Measuring the battery IR is done using an IR measuring device like the ZK-T459_.
+
+    Attributes:
+        id: Primary key auto incrementing ID
+        created: Created timestamp
+        battery: FK to the `Battery` this entry links to.
+        int_res: The measured `Battery` internal resistance.
+
+    .. _ZK-T459: https://manuals.plus/m/882596d249070195ab248490e6181e12ed16b4a75825861c169f77f02aa0b9c9
+    """
+
+    id = AutoField()
+    created = DateTimeField(default=datetime.now, null=False, index=True)
+    battery = ForeignKeyField(Battery, null=False, backref="ir", on_delete="CASCADE")
+    int_res = IntegerField(null=False)
+
+    class Meta:
+        """
+        Model config.
+
+        Attributes:
+            table_name: Name of the table in the database.
+        """
+
+        table_name = "internal_resistance"
 
 
 class SoCEvent(BaseModel):
