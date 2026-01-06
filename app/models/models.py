@@ -50,6 +50,8 @@ from app.config import (
     DB_NAME,
 )
 
+from ..utils import datesToStrings
+
 # Set up a local logger
 logger = logging.getLogger(__name__)
 
@@ -251,6 +253,86 @@ class Battery(BaseModel):
         """
 
         table_name = "battery"
+
+    @property
+    def ir(self):
+        """
+        Property to return the latest `InternalResistance` entry for this
+        battery.
+
+        Returns:
+            The latest IR value in mΩ if available, or None if not.
+        """
+        return (
+            self.int_res.select(InternalResistance.int_res)
+            .order_by(InternalResistance.created.desc())
+            .scalar()
+        )
+
+    @ir.setter
+    def ir(self, int_res):
+        """
+        Adds a new `InternalResistance` entry for this battery, defaulting to
+        the current timestamp.
+
+        Args:
+            int_res: The new internal resistance value to add in mΩ
+
+        Note:
+            No validation is done on int_res, so make sure it is correct to
+            avoid a blow-up.
+        """
+        # Add the new IR
+        InternalResistance.create(battery=self, int_res=int_res)
+
+    @property
+    def irLatest(self):
+        """
+        Like `ir()`, but returns a tuple of `(ir, created)` to include both the
+        latest IR value and the date it was created.
+        """
+
+        last_ir = (
+            self.int_res.select(InternalResistance.int_res, InternalResistance.created)
+            .order_by(InternalResistance.created.desc())
+            .first()
+        )
+
+        if not last_ir:
+            return (None, None)
+
+        return datesToStrings((last_ir.int_res, last_ir.created))
+
+    def irHist(self, fmt: dict | tuple = dict, raw_dates: bool = True):
+        """
+        Returns the IR history for this `Battery`.
+
+        The result may be returned as ``dict`` or ``tuple`` by setting the fmt
+        arg to ``dict`` or ``tuple``.
+
+        The `created` field can be returned as araw datetime, or as a datetime
+        string.
+
+        Args:
+            fmt: Specify the return format. Allowed values are ``dict`` and
+                ``tuple``, defaulting to ``dict``
+            raw_dates: If True, dates will be returned as datetime or date objects.
+                If False (the default) dates will be be returned as "YYYY-MM-DD
+                HH:MM:SS" (datetimes) or "YYYY-MM-DD" (date only) strings.
+
+        Returns:
+            The history as a list of the specified format, or empty if no
+            history is available. The list will be sorted in decensding
+            `created` order.
+        """
+        q = self.int_res.select().order_by(InternalResistance.created.desc())
+
+        hist = list(q.dicts() if fmt == dict else q.tuples())
+
+        if raw_dates:
+            return hist
+
+        return [datesToStrings(h) for h in hist]
 
     def save(self, *args, **kwargs):
         """
@@ -757,14 +839,16 @@ class InternalResistance(BaseModel):
         id: Primary key auto incrementing ID
         created: Created timestamp
         battery: FK to the `Battery` this entry links to.
-        int_res: The measured `Battery` internal resistance.
+        int_res: The measured `Battery` internal resistance in milliohm.
 
     .. _ZK-T459: https://manuals.plus/m/882596d249070195ab248490e6181e12ed16b4a75825861c169f77f02aa0b9c9
     """
 
     id = AutoField()
     created = DateTimeField(default=datetime.now, null=False, index=True)
-    battery = ForeignKeyField(Battery, null=False, backref="ir", on_delete="CASCADE")
+    battery = ForeignKeyField(
+        Battery, null=False, backref="int_res", on_delete="CASCADE"
+    )
     int_res = IntegerField(null=False)
 
     class Meta:
@@ -776,6 +860,8 @@ class InternalResistance(BaseModel):
         """
 
         table_name = "internal_resistance"
+
+        indexes = ((("battery", "created"), False),)
 
 
 class SoCEvent(BaseModel):
