@@ -288,7 +288,7 @@ class Battery(BaseModel):
     @property
     def irLatest(self):
         """
-        Like `ir()`, but returns a tuple of `(ir, created)` to include both the
+        Like `ir()`, but returns a tuple of ``(ir, created)`` to include both the
         latest IR value and the date it was created.
         """
 
