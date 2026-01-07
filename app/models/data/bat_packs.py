@@ -10,12 +10,12 @@ import logging
 
 from typing import Iterable
 
-from peewee import Case, JOIN
+from peewee import Case, JOIN, fn
 from playhouse.shortcuts import model_to_dict
 
 from app.utils import datesToStrings
 
-from ..models import db, Battery, BatteryImage, BatteryPack
+from ..models import db, Battery, InternalResistance, BatteryImage, BatteryPack
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,20 @@ def convertIDs(ids: list, raw_dates: bool = False):
     id_map = {}
 
     with db.connection_context():
+        # Subquery to selects the latest IR per battery which gives one row per
+        # IR so that `rn =1` be the most recent IR for a battery
+        latest_ir_sq = InternalResistance.select(
+            InternalResistance.battery_id,
+            InternalResistance.int_res,
+            InternalResistance.created,
+            fn.ROW_NUMBER()
+            .over(
+                partition_by=[InternalResistance.battery_id],
+                order_by=[InternalResistance.created.desc()],
+            )
+            .alias("rn"),
+        ).alias("latest_ir")
+
         # All the batteries that do not currently belong to a pack
         query = (
             Battery.select(
@@ -167,9 +181,22 @@ def convertIDs(ids: list, raw_dates: bool = False):
                     # Else, False, there is no image
                     False,
                 ).alias("has_img"),
+                latest_ir_sq.c.int_res.alias("ir"),
+                latest_ir_sq.c.created.alias("ir_created"),
             )
             # Join image table first (one-to-one, so no row multiplication)
-            .join(BatteryImage, JOIN.LEFT_OUTER).where(Battery.id << id_list)
+            .join(BatteryImage, JOIN.LEFT_OUTER)
+            # latest IR (windowed subquery)
+            .join(
+                latest_ir_sq,
+                JOIN.LEFT_OUTER,
+                on=(Battery.id == latest_ir_sq.c.battery_id),
+            )
+            # only keep the "latest" IR row (or none)
+            .where(
+                (Battery.id << id_list)
+                & ((latest_ir_sq.c.rn == 1) | latest_ir_sq.c.rn.is_null())
+            )
         )
 
         # Create the lookup map
@@ -235,6 +262,8 @@ def getAvailable(excl: list | None = None, raw_dates: bool = False):
               'cap_date': '2025-05-12',
               'mah': 1393,
               'accuracy': 98,
+              'ir': 441,
+              'ir_created': '2026-01-01',
               'has_img': True/False,
              }
     """
@@ -255,6 +284,20 @@ def getAvailable(excl: list | None = None, raw_dates: bool = False):
         ex_list = None
 
     with db.connection_context():
+        # Subquery to selects the latest IR per battery which gives one row per
+        # IR so that `rn =1` be the most recent IR for a battery
+        latest_ir_sq = InternalResistance.select(
+            InternalResistance.battery_id,
+            InternalResistance.int_res,
+            InternalResistance.created,
+            fn.ROW_NUMBER()
+            .over(
+                partition_by=[InternalResistance.battery_id],
+                order_by=[InternalResistance.created.desc()],
+            )
+            .alias("rn"),
+        ).alias("latest_ir")
+
         # All the batteries that do not currently belong to a pack
         query = (
             Battery.select(
@@ -272,9 +315,22 @@ def getAvailable(excl: list | None = None, raw_dates: bool = False):
                     # Else, False, there is no image
                     False,
                 ).alias("has_img"),
+                latest_ir_sq.c.int_res.alias("ir"),
+                latest_ir_sq.c.created.alias("ir_created"),
             )
             # Join image table first (one-to-one, so no row multiplication)
-            .join(BatteryImage, JOIN.LEFT_OUTER).where(Battery.pack == None)
+            .join(BatteryImage, JOIN.LEFT_OUTER)
+            # latest IR (windowed subquery)
+            .join(
+                latest_ir_sq,
+                JOIN.LEFT_OUTER,
+                on=(Battery.id == latest_ir_sq.c.battery_id),
+            )
+            # only keep the "latest" IR row (or none)
+            .where(
+                (Battery.pack.is_null(True))
+                & ((latest_ir_sq.c.rn == 1) | latest_ir_sq.c.rn.is_null())
+            )
         )
 
         # Exclude those from the exclude list too
@@ -440,7 +496,7 @@ def build(bat_ids: list, voltage: int, id_only: bool = False) -> dict:
 
     Some rules:
 
-    * All IDs in ``bat_ids`` must a valid `Battery` entries.
+    * All IDs in ``bat_ids`` must be valid `Battery` entries.
     * The batteries may not already belong to another `BatteryPack`, but it's
         OK if it belongs to this pack
 
