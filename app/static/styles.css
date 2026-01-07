@@ -519,8 +519,8 @@ form.pack_build fieldset.cells {
 fieldset.cells table {
     font-size: 0.9rem;
 }
-fieldset.cells table {
-    font-size: 0.9rem;
+fieldset.cells table.avail {
+    font-size: 0.8rem;
 }
 fieldset.cells table caption {
 	font-size: 1rem;
