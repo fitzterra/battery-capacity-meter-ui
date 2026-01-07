@@ -121,7 +121,7 @@ def packView(req, pack_id=None):
     GET requests.
 
     This function will prepare the initial pack view page for an existing
-    (``pack_is`` is set) or new pack (``pack_id`` is None).
+    (``pack_id`` is set) or new pack (``pack_id`` is None).
 
     It populates the `bat_pack_build_html` template once the pack info has been
     gathered.
@@ -273,7 +273,7 @@ def packUpdate(req, pack_id=None):
     # If a battery was added or removed, there would be an `action` element in
     # the form, and it's value will be 'add' or 'del'. In addition there will
     # then be a 'bid' element which will be the battery id to add or remove.
-    # A pack voltage change will also post and update with an action of
+    # A pack voltage change will also post an update with an action of
     # "v_change".
     # Let's handle that now.
     if "action" in req.form:
