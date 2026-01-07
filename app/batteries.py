@@ -239,31 +239,86 @@ async def batHistory(req, bat_id):
 @bat.post("/<bat_id>/")
 async def batUpdate(req, bat_id):
     """
-    Allows updating some `Battery` fields.
-    """
-    logger.info("Battery field update call: %s", req.form)
+    Allows updating some `Battery` fields from the `batHistory` view.
 
-    # We should have only one field in the form
-    if len(req.form.keys()) > 1:
+    The fields that are currently updatable are:
+
+    * The Battery Internal Resistance
+        * Requires the ``update`` query arg value to be ``ir``
+        * Requires the new IR value to be in the ``ir`` form input field
+        * Requires an ``action`` form field that is either ``update`` (updates
+          the most recent `InternalResistance` entry for this battery) or
+          ``new`` (adds a new `InternalResistance` entry for this battery with
+          created timestamp of now)
+    * The Battery Dimension
+        * Requires the ``update`` query arg value to be ``dimension``
+        * Only allows a ``dimension`` form input to set the new
+          `Battery.dimension` value
+
+    On success, the specified field will be updated and the new value returned.
+    On Error, an error messages will be returned via `flashMessage`.
+    """
+    logger.info(
+        "Battery field update call. Query args: %s | Form: %s", req.args, req.form
+    )
+
+    # We need the `update` query arg to know what field to update
+    to_update = req.args.get("update")
+    if not to_update or to_update not in ("dimension", "ir"):
         return flashMessage(
-            "Invalid data - more than one field to update.",
+            "Invalid data - unable to determine what field needs updating.",
             "error",
         )
 
-    # Get the field in the MultiDict
-    field, val = list(req.form.items())[0]
-    # We will always only have one value, and if not we force it to the first
-    # one
-    val = val[0]
+    # Are we dealing with the IR value?
+    if to_update == "ir":
+        # Get the action and IR value
+        action = req.form.get("action")
+        val = req.form.get("ir")
+        logger.info("%s IR with value %s", action.title(), val)
 
-    # Try the update
-    res = updateBattertField(bat_id, field, val)
+        # We can only update or create a new entry
+        if action not in ("new", "update"):
+            return flashMessage(f"Invalid IR action: {action}", "error")
 
-    # We expect to always be called from HTMX, so we return and HTMX snippet
-    if res is True:
-        return flashMessage(f"Field {field} updated successfully", "success")
+        # The IR value must an integer representing mΩ
+        # Note: This will be True for any digit value, and NOT only for ASCII
+        # digits.
+        if not val.isdecimal():
+            return flashMessage("The IR value must an integer as a mΩ value.", "error")
 
-    return flashMessage(f"Error updating battery: {res}")
+        # Try the update
+        res = updateBattertField(bat_id, "ir" if action == "new" else "ir_upd", val)
+
+        if res["success"] is True:
+            return res["val"]
+
+    else:
+        # We are dealing with the dimension value. We should have only one field in
+        # the form
+        logger.info("Dimension update: %s", req.form)
+        if len(req.form.keys()) > 1:
+            return flashMessage(
+                "Invalid data - more than one field to update.",
+                "error",
+            )
+
+        # Get the field in the MultiDict
+        field, val = list(req.form.items())[0]
+        # We will always only have one value, and if not we force it to the first
+        # one
+        val = val[0]
+
+        # Try the update
+        res = updateBattertField(bat_id, field, val)
+
+        # We expect the front end to have been set up to swap our response into the
+        # field where the value should be displayed so that we only return the
+        # updated value
+        if res["success"] is True:
+            return res["val"]
+
+    return flashMessage(f"Error updating battery: {res['val']}", "error")
 
 
 @bat.route("/<bat_id>/img", methods=["GET", "DELETE"])

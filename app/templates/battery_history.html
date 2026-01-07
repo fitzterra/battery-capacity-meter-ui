@@ -11,10 +11,130 @@
     <li><strong>Capacity</strong>: {{ bat['mah'] }}mAh</li>
     <li><strong>Measure Date</strong>: {{ bat['cap_date'] }}</li>
     <li>
+      <strong>Internal Resistance</strong>:
+      <!-- Block to manage inline editing of the Internal Restistance -->
+      <span
+        class="ir-block"
+        hx-target="span.ir-value span.val"
+        hx-swap="innerHTML"
+        _="-- Hide the normal IR value display and show the edit form when
+           -- clicking the edit button.
+           on click from .edit-ir in me
+             add .hidden to .ir-value
+             remove .hidden from .ir-edit
+           end
+
+           -- Hide the edit form and show the IR value on clicking
+           -- cancel.
+           on click from .cancel in me
+              add .hidden to .ir-edit
+              remove .hidden from .ir-value
+            end
+
+           -- When we return from submitting the form, we swap the edit and
+           -- view dim element back again.
+           on htmx:afterRequest from .ir-edit
+              add .hidden to .ir-edit
+              remove .hidden from .ir-value
+           end
+        "
+      >
+
+        <!-- Normal IR display mode, with edit icon -->
+        <span class="ir-value">
+          <span class="val">
+            {{ f"{bat['ir']}mΩ ({bat['ir_created'].split(' ')[0]})" if bat['ir'] is not None else '(not set)' }}
+          </span>
+          &nbsp;
+          <svg
+            class='edit-ir button'
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <use xlink:href="/feather-sprite.svg#edit" />
+          </svg>
+        </span>
+
+        <!-- The edit mode for the dimension - shown when the edit icon is clicked -->
+        <form
+          class="ir-edit hidden"
+          hx-post="?update=ir"
+        >
+
+          <input 
+              type="text"
+              name="ir"
+              value="{{bat['ir'] or ''}}"
+              list="ir-list"
+              required
+          >mΩ
+          
+          &nbsp;
+
+          <button type="submit" name="action" value="new">
+            <svg
+              class='new button'
+              width="16"
+              height="16"
+              title="Add new IR measurement"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <use xlink:href="/feather-sprite.svg#file-plus" />
+            </svg>
+          </button>
+
+          &nbsp;
+
+          <button type="submit" name="action" value="update">
+            <svg
+              class='update button'
+              width="16"
+              height="16"
+              title="Update the current IR measurement"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <use xlink:href="/feather-sprite.svg#save" />
+            </svg>
+          </button>
+
+          &nbsp;
+
+          <svg
+            class='cancel button'
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <use xlink:href="/feather-sprite.svg#x-square" />
+          </svg>
+        </form>
+
+      </span>
+    </li>
+    <li>
       <strong>Dimension</strong>:
       <!-- Block to manage inline editing of the dimension -->
       <span
         class="dim-block"
+        hx-target="span.dim-value span.val"
+        hx-swap="innerHTML"
         _="-- Submit the form when clicking the save SVG
            on click from .save in me
               trigger submit() on the <form/> in me
@@ -39,7 +159,6 @@
            -- When we return from submitting the form, we swap the edit and
            -- view dim element back again.
            on htmx:afterRequest from .dim-edit
-              put the value of the <input/> in .dim-edit into .val in .dim-value
               add .hidden to .dim-edit
               remove .hidden from .dim-value
            end
@@ -71,7 +190,7 @@
         <!-- The edit mode for the dimension - shown when the edit icon is clicked -->
         <form
           class="dim-edit hidden"
-          hx-post=""
+          hx-post="?update=dimension"
         >
 
           <input 

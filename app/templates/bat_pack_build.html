@@ -76,6 +76,7 @@
           <th class="p">P</th>
           <th>Battery ID</th>
           <th>Capacity</th>
+          <th>IR</th>
           <th></th>
         </tr>
       </thead>
@@ -92,6 +93,7 @@
             {% endif %}
           </td>
           <td>{{ b['mah'] }}mAh</td>
+          <td>{{ f"{b['ir']}mΩ" if b['ir'] is not None else 'n/a' }}</td>
           <td
             class="rem"
             hx-post=""
@@ -110,6 +112,7 @@
         <tr>
           <th>Battery ID</th>
           <th>Capacity</th>
+          <th>IR</th>
           <th></th>
         </tr>
       </thead>
@@ -123,6 +126,7 @@
             {% endif %}
           </td>
           <td>{{ b['mah'] }}mAh</td>
+          <td>{{ f"{b['ir']}mΩ" if b['ir'] is not None else 'n/a' }}</td>
           <td
             class="rem"
             hx-post=""
@@ -138,7 +142,7 @@
 
     <table
       data-name="build_avail"
-      class="avial sortable searchable"
+      class="avail sortable searchable"
       data-sb-input-class="search-input"
     >
       <caption>Available Batteries</caption>
@@ -148,6 +152,7 @@
           <th>Dim</th>
           <th class="mah">Capacity</th>
           <th class="acc">Accuracy</th>
+          <th class="ir">IR</th>
           <th></th>
         </tr>
       </thead>
@@ -169,6 +174,10 @@
             class="acc"
             data-sort="{{b['accuracy']}}"
           >{{ b['accuracy'] }}%</td>
+          <td
+            class="ir"
+            data-sort="{{b['ir']}}"
+            >{{ f"{b['ir']}mΩ" if b['ir'] is not None else '' }}</td>
           <td
             class="add"
             hx-post=""

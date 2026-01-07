@@ -14,7 +14,8 @@
       <th data-sort-col="4"><strong>Capacity</strong></th>
       <th data-sort-col="5">Accuracy</th>
       <th data-sort-col="6">Measures</th>
-      <th data-sort-col="7">Pack</th>
+      <th data-sort-col="7">IR</th>
+      <th data-sort-col="8">Pack</th>
     </tr>
   </thead>
   <tbody>
@@ -37,6 +38,7 @@
       <td data-sort="{{ b['mah'] }}"><strong>{{ b['mah'] }}mAh</strong></td>
       <td data-sort="{{ b['accuracy'] }}">{{ b['accuracy'] }}%</td>
       <td data-sort="{{ b['h_count'] }}">{{ b['h_count'] }}</td>
+      <td data-sort="{{ b['ir'] }}">{{ f"{b['ir']}mΩ" if b['ir'] is not None else ''}}</td>
       <td class="t-left">
       {% if b['pack'] %}
         <a
