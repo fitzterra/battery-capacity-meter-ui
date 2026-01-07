@@ -66,6 +66,12 @@ log {
    TEXT level 
    TEXT msg 
 }
+internal_resistance {
+ INTEGER id PK
+   INTEGER battery_id 
+   TIMESTAMP created 
+   INTEGER int_res 
+}
 battery_image {
  INTEGER battery_id PK
    SMALLINT height 
@@ -77,6 +83,7 @@ battery_image {
 bat_cap_history one or zero--0+ soc_event : has
 battery one or zero--0+ bat_cap_history : has
 battery_pack one or zero--0+ battery : has
+battery one or zero--0+ internal_resistance : has
 battery one or zero--zero or one battery_image : has
 
 

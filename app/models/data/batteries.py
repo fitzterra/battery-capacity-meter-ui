@@ -8,6 +8,7 @@ Attributes:
 
 import io
 import logging
+from datetime import datetime
 
 from typing import Iterable
 from peewee import fn, JOIN, Case, Value
@@ -16,7 +17,14 @@ from PIL import Image
 
 from app.utils import datesToStrings
 
-from ..models import db, Battery, BatteryImage, BatCapHistory, BatteryPack
+from ..models import (
+    db,
+    Battery,
+    BatteryImage,
+    BatCapHistory,
+    BatteryPack,
+    InternalResistance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +77,8 @@ def getKnownBatteries(
     Generator that returns all known batteries from the `Battery` table.
 
     Each entry will also including a count of how many history entries each
-    has, if it has an image, and if it belongs to a `BatteryPack`, the pack ID
-    and the pack name.
+    has, if it has an image, the last measured IR (in mΩ) if any, and if it
+    belongs to a `BatteryPack`, the pack ID and the pack name.
 
     Args:
         raw_dates: If True, dates will be returned as datetime or date objects.
@@ -108,41 +116,70 @@ def getKnownBatteries(
               'accuracy': 98,
               'has_img': True/False,
               'h_count': 2,
+              'ir': 452,
               'pack': 2,
               'pack_name': 'USB 5V pack for quick charge',},
 
     """
     with db.connection_context():
+
+        # --- Windowed subquery for latest IR per battery ---
+        latest_ir_sq = InternalResistance.select(
+            InternalResistance.battery,
+            InternalResistance.int_res,
+            InternalResistance.created,
+            fn.ROW_NUMBER()
+            .over(
+                partition_by=[InternalResistance.battery],
+                order_by=[InternalResistance.created.desc()],
+            )
+            .alias("rn"),
+        ).alias("latest_ir")
+
+        # --- Main query ---
         query = (
             Battery.select(
                 Battery,
+                # has image? True/False
                 Case(
                     None,
-                    (
-                        (
-                            # Image is NOT NULL
-                            BatteryImage.battery.is_null(False),
-                            # Then True, there is an image
-                            True,
-                        ),
-                    ),
-                    # Else, False, there is no image
+                    ((BatteryImage.battery.is_null(False), True),),
                     False,
                 ).alias("has_img"),
+                # count of capacity history entries
                 fn.COUNT(BatCapHistory.id).alias("h_count"),
+                # pack name
                 BatteryPack.name.alias("pack_name"),
+                # latest IR fields
+                latest_ir_sq.c.int_res.alias("ir"),
+                latest_ir_sq.c.created.alias("ir_created"),
             )
-            # Join BatteryPack (one-to-many)
+            # Join battery pack
             .join(BatteryPack, JOIN.LEFT_OUTER)
-            # Switch back to Battery before joining BatteryImage
-            .switch(Battery)
-            # Join image table first (one-to-one, so no row multiplication)
-            .join(BatteryImage, JOIN.LEFT_OUTER)
-            # Switch join context back to Battery for history aggregation
-            .switch(Battery)
-            .join(BatCapHistory, JOIN.LEFT_OUTER)
-            .group_by(Battery.id, BatteryImage.battery, BatteryPack.id)
-            .order_by(Battery.bat_id)
+            # Join image table
+            .join(
+                BatteryImage, JOIN.LEFT_OUTER, on=(Battery.id == BatteryImage.battery)
+            )
+            # Join capacity history
+            .join(
+                BatCapHistory, JOIN.LEFT_OUTER, on=(Battery.id == BatCapHistory.battery)
+            )
+            # Join latest IR subquery (windowed)
+            .join(
+                latest_ir_sq,
+                JOIN.LEFT_OUTER,
+                on=(Battery.id == latest_ir_sq.c.battery_id),
+            )
+            # Only take latest IR per battery
+            .where((latest_ir_sq.c.rn == 1) | (latest_ir_sq.c.rn.is_null()))
+            # Group by battery fields + joined tables
+            .group_by(
+                Battery.id,
+                BatteryImage.battery,
+                BatteryPack.id,
+                latest_ir_sq.c.int_res,
+                latest_ir_sq.c.created,
+            ).order_by(Battery.bat_id)
         )
 
         # Any search criteria?
@@ -183,6 +220,10 @@ def getBatteryDetails(bat_id: str, raw_dates: bool = False) -> dict:
         bat_dict = bat.dicts().get()
         # Does it have an image?
         bat_dict["has_image"] = bat.get().images.count() != 0
+
+        # Add the latest IR entry as a mΩ value, or None if no IR entry
+        # available.
+        bat_dict["ir"], bat_dict["ir_created"] = bat.get().irLatest
 
         # Return the raw entry if raw_dates is True
         if raw_dates:
@@ -429,6 +470,12 @@ def updateBattertField(bat_id: str, field: str, value: str):
 
     Only certain fields are allowed to be updated. Currently these are:
 
+    * ``ir``: This allows adding a new `InternalResistance` entry for this
+      battery with ``value`` supplied.
+    * ``ir_upd``: This is a special field name which will allow the most recent
+      `InternalResistance` entry for this battery with to be updated with the
+      ``value`` supplied. It will also update the `InternalResistance.created`
+      timestamp to the current date and time.
     * ``dimension``: This allows updating the `Battery.dimension` field with
       the ``value`` supplied.
     * ``placement``: This allows updating the `Battery.placement` field with
@@ -441,21 +488,30 @@ def updateBattertField(bat_id: str, field: str, value: str):
         field: The field name to be updated.
 
     Returns:
-        An error string if the battery is not found, or the ``field`` or
-        ``value`` is invalid, or there was and error updating the field.
-        True if the update was successful.
+        A dict as:
+
+        .. python:
+            {
+                'success': bool,
+                'val': The updated value for success, error message otherwise
+            }
     """
-    # A map of field names to upgrade, and values being an optional convertion
+    res = {"success": True, "val": None}
+
+    # A map of field names to upgrade, and values being an optional conversion
     # function to convert value to a suitable value for the field if needed.
     fields_map = {
+        "ir": int,  # Convert to integer
+        "ir_upd": int,  # Convert to integer
         "dimension": None,  # No conversion needed
         "placement": None,  # No conversion needed
     }
 
     if field not in fields_map:
-        err = f"Field {field} is not a valid updateable field."
-        logger.error("Can not update Battery field: %s", err)
-        return err
+        res["val"] = f"Field {field} is not a valid updateable field."
+        logger.error("Can not update Battery field: %s", res["val"])
+        res["success"] = False
+        return res
 
     # Convert the field if needed.
     converter = fields_map[field]
@@ -466,16 +522,51 @@ def updateBattertField(bat_id: str, field: str, value: str):
             bat = Battery.select().where(Battery.bat_id == bat_id)
             # We will either 1 or 0 batteries
             if not bat.count():
-                err = f"Battery with ID {bat_id} not found."
-                logger.debug(err)
-                return err
+                res["val"] = f"Battery with ID {bat_id} not found."
+                logger.debug(res["val"])
+                res["success"] = False
+                return res
 
             # Get the battery instance
             bat = bat.get()
 
+            # For 'ir_upd' we need to do something special
+            if field == "ir_upd":
+                # Get the most recent IR entry for the battery
+                ir = (
+                    InternalResistance.select()
+                    .where(InternalResistance.battery == bat)
+                    .order_by(InternalResistance.created.desc())
+                    .first()
+                )
+                # Do we have an IR entry for this battery?
+                if ir:
+                    # Update the val and created fields
+                    ir.int_res = final_val
+                    ir.created = datetime.now()
+                    ir.save()
+                    ir = bat.irLatest
+                    res["val"] = f"{ir[0]}mΩ ({ir[1].split(' ')[0]})"
+                    return res
+
+                # We do not yet have an IR entry, so calling this as an
+                # update is incorrect because there is nothing to update.
+                # In this case we change the field to 'ir' so we can do the
+                # standard new IR creation below
+                field = "ir"
+
             # Update the field
+            # NOTE: Because we have a setter called `ir` on Battery that
+            # will create a new IR entry when assigned to, we can add a new IR
+            # entry in the same way we update the other fields.
             setattr(bat, field, final_val)
             bat.save()
+
+            if field == "ir":
+                ir = bat.irLatest
+                res["val"] = f"{ir[0]}mΩ ({ir[1].split(' ')[0]})"
+            else:
+                res["val"] = final_val
     except Exception as exc:
         logger.error(
             "Error update Battery (%s) field '%s' to '%s' - Error: %s",
@@ -484,9 +575,11 @@ def updateBattertField(bat_id: str, field: str, value: str):
             value,
             exc,
         )
-        return f"Error updating {field} for battery with ID {bat_id}"
+        res["val"] = f"Error updating {field} for battery with ID {bat_id}"
+        res["success"] = False
+        return res
 
-    return True
+    return res
 
 
 def getBatMeasurementByUID(bat_id: str, uid: str, raw_dates: bool = False) -> dict:
